@@ -2,7 +2,7 @@
   "name": "BIP — Radar Alert",
   "short_name": "BIP",
   "description": "Detetor de radares de velocidade",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#0a0a0a",
   "theme_color": "#0a0a0a",
