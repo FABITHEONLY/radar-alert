@@ -1,5 +1,5 @@
-const CACHE = 'radar-alert-v2';
-const ASSETS = ['/', '/index.html', '/manifest.json'];
+const CACHE = 'radar-alert-v3';
+const ASSETS = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
@@ -16,7 +16,7 @@ self.addEventListener('fetch', e => {
       caches.open(CACHE).then(c => c.put(e.request, clone));
     }
     return res;
-  })).catch(() => caches.match('/index.html')));
+  })).catch(() => caches.match('./index.html')));
 });
 
 self.addEventListener('notificationclick', e => {
