@@ -1,7 +1,7 @@
 {
-  "name": "Radar Alert — Porto & Gaia",
-  "short_name": "Radar Alert",
-  "description": "Detetor de radares de velocidade para Porto e Gaia",
+  "name": "BIP — Radar Alert",
+  "short_name": "BIP",
+  "description": "Detetor de radares de velocidade",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a0a",
@@ -9,12 +9,12 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='40' fill='%230a0a0a'/><circle cx='96' cy='96' r='70' stroke='%23ff3b30' stroke-width='5' fill='none'/><circle cx='96' cy='96' r='46' stroke='%23ff3b30' stroke-width='4' fill='none' opacity='0.6'/><circle cx='96' cy='96' r='22' stroke='%23ff3b30' stroke-width='3' fill='none' opacity='0.35'/><circle cx='96' cy='96' r='10' fill='%23ff3b30'/></svg>",
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='40' fill='%230a0a0a'/><text x='20' y='128' font-family='Arial Black,sans-serif' font-weight='900' font-size='90' fill='%23f0f0f0'>BI</text><circle cx='158' cy='96' r='46' fill='%23ff3b30'/><circle cx='158' cy='96' r='36' fill='%230a0a0a'/><text x='158' y='113' font-family='Arial Black,sans-serif' font-weight='900' font-size='44' fill='%23f0f0f0' text-anchor='middle'>P</text></svg>",
       "sizes": "192x192",
       "type": "image/svg+xml"
     },
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%230a0a0a'/><circle cx='256' cy='256' r='190' stroke='%23ff3b30' stroke-width='12' fill='none'/><circle cx='256' cy='256' r='126' stroke='%23ff3b30' stroke-width='9' fill='none' opacity='0.6'/><circle cx='256' cy='256' r='62' stroke='%23ff3b30' stroke-width='6' fill='none' opacity='0.35'/><circle cx='256' cy='256' r='28' fill='%23ff3b30'/></svg>",
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%230a0a0a'/><text x='30' y='340' font-family='Arial Black,sans-serif' font-weight='900' font-size='240' fill='%23f0f0f0'>BI</text><circle cx='420' cy='256' r='120' fill='%23ff3b30'/><circle cx='420' cy='256' r='95' fill='%230a0a0a'/><text x='420' y='300' font-family='Arial Black,sans-serif' font-weight='900' font-size='116' fill='%23f0f0f0' text-anchor='middle'>P</text></svg>",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
