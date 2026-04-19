@@ -279,13 +279,6 @@ body{font-family:var(--display);color:var(--text);display:flex;flex-direction:co
         <div><div class="setting-label">Vibração</div><div class="setting-sub">Pulso haptico no telemóvel</div></div>
         <button class="toggle on" id="toggleVibrate" onclick="toggleSetting('vibrate')"></button>
       </div>
-      <div class="setting-row" style="flex-direction:column;align-items:stretch;gap:10px">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div><div class="setting-label">Distância de alerta</div><div class="setting-sub">Início dos bips</div></div>
-          <span style="font-family:var(--mono);font-size:13px" id="alertDistVal">800m</span>
-        </div>
-        <input type="range" min="200" max="2000" value="800" step="100" id="alertDistSlider" oninput="updateAlertDist(this.value)" style="accent-color:var(--red);width:100%">
-      </div>
     </div>
     <div class="setting-group">
       <div class="setting-group-title">Simulador</div>
@@ -300,13 +293,11 @@ body{font-family:var(--display);color:var(--text);display:flex;flex-direction:co
         </div>
         <div class="perm-status" id="gpsPermStatus">Não ativo</div>
       </div>
-      <div class="setting-row" style="flex-direction:column;align-items:stretch;gap:10px">
-  <div style="display:flex;justify-content:space-between;align-items:center">
-    <div><div class="setting-label">Distância de alerta</div><div class="setting-sub">Início dos bips</div></div>
-    <span style="font-family:var(--mono);font-size:13px" id="alertDistVal">800m</span>
-  </div>
-  <input type="range" min="200" max="2000" value="800" step="100" id="alertDistSlider" oninput="updateAlertDist(this.value)" style="accent-color:var(--red);width:100%">
-</div>
+      <div class="setting-row" style="flex-direction:column;align-items:stretch;gap:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><div class="setting-label">Notificações</div><div class="setting-sub">Alertas com ecrã bloqueado</div></div>
+          <button class="toggle" id="toggleNotif" onclick="requestNotifications()"></button>
+        </div>
         <div class="perm-status" id="notifPermStatus">Não solicitada</div>
       </div>
     </div>
@@ -314,7 +305,7 @@ body{font-family:var(--display);color:var(--text);display:flex;flex-direction:co
       <div class="setting-group-title">Instalar app</div>
       <div class="install-banner">
         <div class="install-title">Instalar no telemóvel</div>
-        <div class="install-sub">Funciona offline e em segundo plano</div>
+        <div class="install-sub">Recomendado manter o ecrã ligado durante a viagem</div>
         <button class="install-btn" onclick="installApp()">Instalar BIP</button>
       </div>
       <div class="perm-status" style="font-size:11px;line-height:1.7">
@@ -465,12 +456,27 @@ function updateUI(distances,speed){
     }
     if(d<500&&lastNearestDist>=500)sendNotification(nearest.name,Math.round(d));
     lastNearestDist=d;
+    // TRUQUE DO ECRÃ DE BLOQUEIO
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: d < 1000 ? Math.round(d) + ' metros' : (d/1000).toFixed(1) + ' km',
+        artist: nearest.name.replace(/&#8212;/g,'-').replace(/&#8594;/g,'>'),
+        album: 'BIP - Alerta de Radar'
+      });
+    }
   } else {
     display.className='radar-display';
     document.getElementById('distNumber').textContent='—';
     document.getElementById('distUnit').textContent='aguarda GPS';
     document.getElementById('radarNameDisplay').textContent='nenhum radar próximo';
     stopBips();banner.classList.remove('show');updateBipBars(0);lastNearestDist=Infinity;
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: 'Sem radares próximos',
+        artist: 'Boa viagem!',
+        album: 'BIP - Alerta de Radar'
+      });
+    }
   }
   renderList(sorted);
 }
