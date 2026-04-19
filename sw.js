@@ -1,4 +1,4 @@
-const CACHE = 'radar-alert-v1';
+const CACHE = 'radar-alert-v2';
 const ASSETS = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', e => {

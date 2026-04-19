@@ -573,7 +573,14 @@ function hideSettings(){document.getElementById('settingsPanel').classList.remov
 function setActiveNav(id){document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active');}
 
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;});
-function installApp(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(()=>{deferredPrompt=null;});}}
+function installApp(){
+  if(deferredPrompt){
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(()=>{deferredPrompt=null;});
+  } else {
+    alert("Para instalar a app:\n\n📱 IPHONE (Safari):\nToque no botão 'Partilhar' (quadrado com seta para cima) na barra inferior e escolha 'Adicionar ao ecrã principal'.\n\n📱 ANDROID (Chrome):\nToque no menu (3 pontos) no canto superior direito e escolha 'Adicionar ao ecrã principal'.");
+  }
+}
 
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 if(Notification.permission==='granted'){document.getElementById('toggleNotif').classList.add('on');document.getElementById('notifPermStatus').textContent='Autorizado';}
