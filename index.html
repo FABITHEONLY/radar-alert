@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 :root{--bg:#0a0a0a;--surface:#141414;--surface2:#1c1c1c;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);--text:#f0f0f0;--muted:#666;--muted2:#444;--red:#ff3b30;--red-dim:rgba(255,59,48,0.15);--amber:#ff9f0a;--amber-dim:rgba(255,159,10,0.12);--green:#30d158;--green-dim:rgba(48,209,88,0.12);--mono:'DM Mono',monospace;--display:'Syne',sans-serif}
@@ -26,40 +26,119 @@ body{font-family:var(--display);color:var(--text);display:flex;flex-direction:co
 .gps-dot{width:7px;height:7px;border-radius:50%;background:currentColor}
 .gps-btn.on .gps-dot{animation:blink 1.2s ease-in-out infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
-.main{flex:1;display:flex;flex-direction:column;padding:14px 20px;gap:12px;overflow:hidden;min-height:0}
-.radar-display{position:relative;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:22px 20px;background:var(--surface);border-radius:24px;border:1px solid var(--border);overflow:hidden;transition:border-color .4s,background .4s}
+.main{flex:1;display:flex;flex-direction:column;padding:12px 20px;gap:10px;overflow:hidden;min-height:0}
+
+/* ── TOP ROW: radar circle + map thumbnail ── */
+.top-row{display:flex;gap:10px;flex-shrink:0;align-items:stretch}
+
+.radar-display{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px 12px;background:var(--surface);border-radius:20px;border:1px solid var(--border);overflow:hidden;transition:border-color .4s,background .4s;min-width:0}
 .radar-display.alert{border-color:var(--red);background:var(--red-dim)}
 .radar-display.warn{border-color:var(--amber);background:var(--amber-dim)}
-.ring-container{position:relative;width:120px;height:120px;flex-shrink:0}
+.ring-container{position:relative;width:100px;height:100px;flex-shrink:0}
 .ring{position:absolute;border-radius:50%;border:1px solid var(--border2);top:50%;left:50%;transform:translate(-50%,-50%);transition:border-color .3s}
-.ring-1{width:120px;height:120px}.ring-2{width:84px;height:84px}.ring-3{width:52px;height:52px}
-.ring-inner{position:absolute;width:30px;height:30px;border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--surface2);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;transition:background .3s,border-color .3s}
+.ring-1{width:100px;height:100px}.ring-2{width:70px;height:70px}.ring-3{width:44px;height:44px}
+.ring-inner{position:absolute;width:26px;height:26px;border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--surface2);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;transition:background .3s,border-color .3s}
 .radar-display.alert .ring{border-color:rgba(255,59,48,.3)}
 .radar-display.alert .ring-inner{background:var(--red);border-color:var(--red)}
 .radar-display.warn .ring{border-color:rgba(255,159,10,.3)}
 .radar-display.warn .ring-inner{background:var(--amber);border-color:var(--amber)}
-.pulse-ring{position:absolute;border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);width:30px;height:30px;border:2px solid var(--red);opacity:0;pointer-events:none}
+.pulse-ring{position:absolute;border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);width:26px;height:26px;border:2px solid var(--red);opacity:0;pointer-events:none}
 .radar-display.alert .pulse-ring{animation:pulse-out .9s ease-out infinite}
-@keyframes pulse-out{0%{width:30px;height:30px;opacity:.8}100%{width:125px;height:125px;opacity:0}}
-.dist-display{margin-top:16px;text-align:center}
-.dist-number{font-size:48px;font-weight:800;line-height:1;font-family:var(--mono);transition:color .3s;color:var(--text)}
+@keyframes pulse-out{0%{width:26px;height:26px;opacity:.8}100%{width:105px;height:105px;opacity:0}}
+.dist-display{margin-top:10px;text-align:center}
+.dist-number{font-size:38px;font-weight:800;line-height:1;font-family:var(--mono);transition:color .3s;color:var(--text)}
 .radar-display.alert .dist-number{color:var(--red)}
 .radar-display.warn .dist-number{color:var(--amber)}
-.dist-unit{font-size:14px;color:var(--muted);font-family:var(--mono);margin-top:3px}
-.radar-name-display{font-size:12px;color:var(--muted);font-family:var(--mono);margin-top:6px;text-align:center;height:16px;transition:color .3s}
+.dist-unit{font-size:12px;color:var(--muted);font-family:var(--mono);margin-top:2px}
+.radar-name-display{font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:4px;text-align:center;height:14px;transition:color .3s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .radar-display.alert .radar-name-display,.radar-display.warn .radar-name-display{color:var(--text)}
-.alert-banner{display:none;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;background:var(--red-dim);border:1px solid var(--red);flex-shrink:0}
+
+/* ── MAP THUMBNAIL ── */
+.map-thumb-wrap{
+  position:relative;
+  width:130px;
+  flex-shrink:0;
+  border-radius:20px;
+  overflow:hidden;
+  cursor:pointer;
+  border:1px solid var(--border);
+  background:var(--surface);
+}
+.map-thumb-wrap:active{opacity:.85}
+#mapThumb{width:100%;height:100%;background:#0f1117}
+
+/* Vignette overlay — always visible, dims the edges */
+.map-thumb-wrap::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  border-radius:20px;
+  background:radial-gradient(ellipse at center,transparent 30%,rgba(10,10,10,0.72) 100%);
+  pointer-events:none;
+  transition:opacity .3s;
+}
+.map-thumb-label{
+  position:absolute;
+  bottom:8px;left:0;right:0;
+  text-align:center;
+  font-size:10px;font-family:var(--mono);
+  color:rgba(255,255,255,0.5);
+  pointer-events:none;
+  z-index:2;
+}
+
+/* ── MAP EXPANDED OVERLAY ── */
+.map-overlay{
+  position:fixed;inset:0;
+  z-index:200;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;
+  transition:opacity .35s;
+}
+.map-overlay.open{opacity:1;pointer-events:all}
+/* blur backdrop — clicking it closes */
+.map-blur-bg{
+  position:absolute;inset:0;
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+  background:rgba(10,10,10,0.55);
+  cursor:pointer;
+}
+.map-expanded{
+  position:relative;
+  width:calc(100% - 40px);
+  max-width:520px;
+  height:58vh;
+  border-radius:22px;
+  overflow:hidden;
+  border:1px solid var(--border2);
+  transform:scale(0.88);
+  transition:transform .35s cubic-bezier(.32,.72,0,1);
+  z-index:1;
+}
+.map-overlay.open .map-expanded{transform:scale(1)}
+#mapExpanded{width:100%;height:100%}
+.map-close-btn{
+  position:absolute;top:12px;right:12px;
+  width:30px;height:30px;border-radius:50%;
+  background:rgba(10,10,10,.75);border:1px solid var(--border2);
+  color:var(--text);font-size:16px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;z-index:2;
+}
+
+.alert-banner{display:none;align-items:center;gap:10px;padding:9px 13px;border-radius:12px;background:var(--red-dim);border:1px solid var(--red);flex-shrink:0}
 .alert-banner.show{display:flex}
-.alert-icon{font-size:16px;flex-shrink:0;animation:blink 1s ease-in-out infinite}
+.alert-icon{font-size:14px;flex-shrink:0;animation:blink 1s ease-in-out infinite}
 .alert-text{font-size:12px;font-weight:700;color:#ff6b63}
 .alert-sub{font-size:10px;color:rgba(255,107,99,.7);margin-top:1px;font-family:var(--mono)}
 .info-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;flex-shrink:0}
-.info-card{background:var(--surface);border-radius:16px;border:1px solid var(--border);padding:12px 14px}
-.info-label{font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}
-.info-value{font-size:26px;font-weight:800;font-family:var(--mono);line-height:1}
+.info-card{background:var(--surface);border-radius:14px;border:1px solid var(--border);padding:10px 14px}
+.info-label{font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.info-value{font-size:24px;font-weight:800;font-family:var(--mono);line-height:1}
 .info-unit{font-size:11px;color:var(--muted);margin-left:2px}
-.bip-bars{display:flex;align-items:flex-end;gap:3px;height:26px}
-.bip-bar{width:8px;border-radius:3px;background:var(--muted2);transition:background .15s}
+.bip-bars{display:flex;align-items:flex-end;gap:3px;height:24px}
+.bip-bar{width:7px;border-radius:3px;background:var(--muted2);transition:background .15s}
 .list-section{flex:1;min-height:0;display:flex;flex-direction:column}
 .list-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-shrink:0}
 .list-title{font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em}
@@ -67,7 +146,7 @@ body{font-family:var(--display);color:var(--text);display:flex;flex-direction:co
 .radar-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:5px;padding-bottom:4px}
 .radar-list::-webkit-scrollbar{width:2px}
 .radar-list::-webkit-scrollbar-thumb{background:var(--muted2);border-radius:2px}
-.r-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:12px;border:1px solid var(--border);background:var(--surface);transition:all .3s}
+.r-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:11px;border:1px solid var(--border);background:var(--surface);transition:all .3s}
 .r-item.alert{border-color:var(--red);background:var(--red-dim)}
 .r-item.warn{border-color:var(--amber);background:var(--amber-dim)}
 .r-status{width:6px;height:6px;border-radius:50%;background:var(--muted2);flex-shrink:0;transition:background .3s}
@@ -75,7 +154,7 @@ body{font-family:var(--display);color:var(--text);display:flex;flex-direction:co
 .r-item.warn .r-status{background:var(--amber)}
 .r-info{flex:1;min-width:0}
 .r-name{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.r-road{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:1px}
+.r-road{font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:1px}
 .r-right{text-align:right;flex-shrink:0}
 .r-dist{font-size:12px;font-weight:500;font-family:var(--mono)}
 .r-item.alert .r-dist{color:var(--red)}
@@ -114,13 +193,16 @@ body{font-family:var(--display);color:var(--text);display:flex;flex-direction:co
 .install-sub{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:2px}
 .install-btn{margin-top:10px;width:100%;padding:10px;border-radius:10px;border:none;background:var(--green);color:#000;font-family:var(--display);font-size:13px;font-weight:700;cursor:pointer}
 .perm-status{font-family:var(--mono);font-size:11px;padding:9px 13px;border-radius:10px;background:var(--surface2);color:var(--muted);margin-top:4px}
+/* leaflet dark fix */
+.leaflet-container{background:#0f1117!important}
+.leaflet-tile{filter:brightness(.85) saturate(.9)}
 </style>
 </head>
 <body>
 
 <div class="header">
   <div class="logo-wrap">
-    <svg width="68" height="28" viewBox="0 0 68 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg width="68" height="28" viewBox="0 0 68 28" fill="none">
       <text x="1" y="23" font-family="'Arial Black','Helvetica Neue',sans-serif" font-weight="900" font-size="26" letter-spacing="-1" fill="white">BIP</text>
       <line x1="43" y1="4" x2="54" y2="26" stroke="#ff3b30" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
       <rect x="1" y="26" width="46" height="2" rx="1" fill="#ff3b30"/>
@@ -133,29 +215,40 @@ body{font-family:var(--display);color:var(--text);display:flex;flex-direction:co
 </div>
 
 <div class="main">
-  <div class="radar-display" id="radarDisplay">
-    <div class="ring-container">
-      <div class="ring ring-1"></div><div class="ring ring-2"></div><div class="ring ring-3"></div>
-      <div class="pulse-ring"></div>
-      <div class="ring-inner">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="2.5" fill="white"/><path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13" stroke="white" stroke-width="1.2" stroke-linecap="round"/></svg>
+  <!-- TOP ROW: radar + map thumbnail -->
+  <div class="top-row">
+    <div class="radar-display" id="radarDisplay">
+      <div class="ring-container">
+        <div class="ring ring-1"></div><div class="ring ring-2"></div><div class="ring ring-3"></div>
+        <div class="pulse-ring"></div>
+        <div class="ring-inner">
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="2.5" fill="white"/><path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13" stroke="white" stroke-width="1.2" stroke-linecap="round"/></svg>
+        </div>
       </div>
+      <div class="dist-display">
+        <div class="dist-number" id="distNumber">—</div>
+        <div class="dist-unit" id="distUnit">aguarda GPS</div>
+      </div>
+      <div class="radar-name-display" id="radarNameDisplay">nenhum radar próximo</div>
     </div>
-    <div class="dist-display">
-      <div class="dist-number" id="distNumber">—</div>
-      <div class="dist-unit" id="distUnit">aguarda GPS</div>
+
+    <!-- MAP THUMBNAIL -->
+    <div class="map-thumb-wrap" id="mapThumbWrap" onclick="openMap()">
+      <div id="mapThumb"></div>
+      <div class="map-thumb-label">mapa</div>
     </div>
-    <div class="radar-name-display" id="radarNameDisplay">nenhum radar próximo</div>
   </div>
 
+  <!-- ALERT BANNER -->
   <div id="alertBanner" class="alert-banner">
-    <div class="alert-icon">⚠</div>
+    <div class="alert-icon">&#9888;</div>
     <div>
       <div class="alert-text" id="alertName">Radar!</div>
       <div class="alert-sub" id="alertSub"></div>
     </div>
   </div>
 
+  <!-- INFO ROW -->
   <div class="info-row">
     <div class="info-card">
       <div class="info-label">Velocidade</div>
@@ -165,81 +258,97 @@ body{font-family:var(--display);color:var(--text);display:flex;flex-direction:co
       <div class="info-label">Intensidade</div>
       <div class="bip-bars" id="bipBars">
         <div class="bip-bar" style="height:6px"></div>
-        <div class="bip-bar" style="height:10px"></div>
-        <div class="bip-bar" style="height:14px"></div>
-        <div class="bip-bar" style="height:18px"></div>
-        <div class="bip-bar" style="height:22px"></div>
+        <div class="bip-bar" style="height:9px"></div>
+        <div class="bip-bar" style="height:13px"></div>
+        <div class="bip-bar" style="height:17px"></div>
+        <div class="bip-bar" style="height:21px"></div>
       </div>
     </div>
   </div>
+
+  <!-- RADAR LIST (inline, scrollable) -->
+  <div class="list-section">
+    <div class="list-header">
+      <div class="list-title">Radares SINCRO — Portugal</div>
+      <div class="list-count" id="listCount"></div>
+    </div>
+    <div class="radar-list" id="radarList"></div>
+  </div>
 </div>
 
+<!-- MAP EXPANDED OVERLAY -->
+<div class="map-overlay" id="mapOverlay">
+  <div class="map-blur-bg" onclick="closeMap()"></div>
+  <div class="map-expanded">
+    <div id="mapExpanded"></div>
+    <div class="map-close-btn" onclick="closeMap()">&#x2715;</div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
 <div class="bottom-nav">
   <button class="nav-btn active" id="navMain" onclick="showPanel('main')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="11" stroke-opacity=".4"/></svg> Radar
-  </button>
-  <button class="nav-btn" id="navMap" onclick="showPanel('mapPanel')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg> Mapa
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="11" stroke-opacity=".4"/></svg>Radar
   </button>
   <button class="nav-btn" id="navList" onclick="showPanel('listPanel')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> Lista
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Lista
   </button>
   <button class="nav-btn" id="navSound" onclick="showPanel('soundPanel')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg> Som
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>Som
   </button>
   <button class="nav-btn" id="navSettings" onclick="showPanel('settingsPanel')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg> Defs
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>Defs
   </button>
 </div>
+
+<!-- LIST PANEL -->
+<div class="panel" id="listPanel">
+  <div class="panel-header">
+    <div class="panel-title">Lista de Radares</div>
+    <button class="close-btn" onclick="showPanel('main')">&#x2715;</button>
+  </div>
+  <div class="panel-body" style="padding:10px">
+    <div class="radar-list" id="radarListFull" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:5px"></div>
+  </div>
+</div>
+
 <!-- SOUND PANEL -->
 <div class="panel" id="soundPanel">
   <div class="panel-header">
     <div class="panel-title">Tipo de som</div>
-    <button class="close-btn" onclick="hideSoundPanel()">&#x2715;</button>
+    <button class="close-btn" onclick="showPanel('main')">&#x2715;</button>
   </div>
   <div class="panel-body">
     <div class="setting-group">
       <div class="setting-group-title">Escolhe o teu alerta</div>
       <div class="sound-grid">
         <div class="sound-opt selected" onclick="selectSound('cronometro')" id="snd-cronometro">
-          <div class="sound-opt-icon">
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="12" r="8" stroke="currentColor" stroke-width="1.6"/><path d="M11 8v4l2.5 2.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M8.5 1.5h5M11 1.5V4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-          </div>
+          <div class="sound-opt-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="12" r="8" stroke="currentColor" stroke-width="1.6"/><path d="M11 8v4l2.5 2.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M8.5 1.5h5M11 1.5V4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div>
           <div class="sound-opt-name">Cronómetro</div>
           <div class="sound-opt-sub">Bip-bip duplo acelerado</div>
         </div>
         <div class="sound-opt" onclick="selectSound('sonar')" id="snd-sonar">
-          <div class="sound-opt-icon">
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="3" fill="currentColor" opacity=".6"/><circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="1.4" opacity=".5"/><circle cx="11" cy="11" r="9.5" stroke="currentColor" stroke-width="1.4" opacity=".25"/></svg>
-          </div>
+          <div class="sound-opt-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="3" fill="currentColor" opacity=".6"/><circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="1.4" opacity=".5"/><circle cx="11" cy="11" r="9.5" stroke="currentColor" stroke-width="1.4" opacity=".25"/></svg></div>
           <div class="sound-opt-name">Sonar</div>
           <div class="sound-opt-sub">Ping descendente suave</div>
         </div>
         <div class="sound-opt" onclick="selectSound('alerta')" id="snd-alerta">
-          <div class="sound-opt-icon">
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 2l9 17H2L11 2z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M11 9v4M11 15.5v1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-          </div>
+          <div class="sound-opt-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 2l9 17H2L11 2z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M11 9v4M11 15.5v1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div>
           <div class="sound-opt-name">Alerta</div>
           <div class="sound-opt-sub">Tom urgente crescente</div>
         </div>
         <div class="sound-opt" onclick="selectSound('discreto')" id="snd-discreto">
-          <div class="sound-opt-icon">
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4 8v6l3 3h3V5H7L4 8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M15 7a5 5 0 010 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          </div>
+          <div class="sound-opt-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4 8v6l3 3h3V5H7L4 8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M15 7a5 5 0 010 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
           <div class="sound-opt-name">Discreto</div>
           <div class="sound-opt-sub">Clique suave e curto</div>
         </div>
         <div class="sound-opt" onclick="selectSound('digital')" id="snd-digital">
-          <div class="sound-opt-icon">
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="6" width="16" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 11h1.5M10 9v4M12 9v4M13.5 11H15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          </div>
+          <div class="sound-opt-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="6" width="16" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 11h1.5M10 9v4M12 9v4M13.5 11H15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
           <div class="sound-opt-name">Digital</div>
           <div class="sound-opt-sub">Bip eletrónico retro</div>
         </div>
         <div class="sound-opt" onclick="selectSound('silencio')" id="snd-silencio">
-          <div class="sound-opt-icon">
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4 8v6l3 3h3V5H7L4 8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><line x1="14" y1="8" x2="20" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="20" y1="8" x2="14" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          </div>
+          <div class="sound-opt-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4 8v6l3 3h3V5H7L4 8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><line x1="14" y1="8" x2="20" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="20" y1="8" x2="14" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
           <div class="sound-opt-name">Silêncio</div>
           <div class="sound-opt-sub">Só vibração</div>
         </div>
@@ -266,14 +375,21 @@ body{font-family:var(--display);color:var(--text);display:flex;flex-direction:co
 <div class="panel" id="settingsPanel">
   <div class="panel-header">
     <div class="panel-title">Definições</div>
-    <button class="close-btn" onclick="hideSettings()">&#x2715;</button>
+    <button class="close-btn" onclick="showPanel('main')">&#x2715;</button>
   </div>
   <div class="panel-body">
     <div class="setting-group">
       <div class="setting-group-title">Alertas</div>
       <div class="setting-row">
-        <div><div class="setting-label">Vibração</div><div class="setting-sub">Pulso haptico no telemóvel</div></div>
+        <div><div class="setting-label">Vibração</div><div class="setting-sub">Pulso haptico</div></div>
         <button class="toggle on" id="toggleVibrate" onclick="toggleSetting('vibrate')"></button>
+      </div>
+      <div class="setting-row" style="flex-direction:column;align-items:stretch;gap:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><div class="setting-label">Distância de alerta</div><div class="setting-sub">Início dos bips</div></div>
+          <span style="font-family:var(--mono);font-size:13px" id="alertDistVal">500m</span>
+        </div>
+        <input type="range" min="200" max="2000" value="500" step="100" id="alertDistSlider" oninput="updateAlertDist(this.value)" style="accent-color:var(--red);width:100%">
       </div>
     </div>
     <div class="setting-group">
@@ -298,71 +414,119 @@ body{font-family:var(--display);color:var(--text);display:flex;flex-direction:co
       </div>
     </div>
     <div class="setting-group">
+      <div class="setting-group-title">Instalar app</div>
+      <div class="install-banner">
+        <div class="install-title">Instalar no telemóvel</div>
+        <div class="install-sub">Funciona offline e em segundo plano</div>
+        <button class="install-btn" onclick="installApp()">Instalar BIP</button>
+      </div>
+      <div class="perm-status" style="font-size:11px;line-height:1.7">
+        iPhone: Safari &#8594; Partilhar &#8594; "Adicionar ao ecr&#227; principal"<br>
+        Android: Chrome &#8594; Menu &#8942; &#8594; "Adicionar ao ecr&#227; principal"
+      </div>
+    </div>
+    <div class="setting-group">
       <div class="setting-group-title">Sobre</div>
       <div class="setting-row" style="flex-direction:column;align-items:stretch;gap:4px">
-        <div class="setting-label">BIP v1.0</div>
-        <div class="setting-sub" style="line-height:1.7">22 radares SINCRO oficiais &#8212; Porto &amp; Gaia<br>Fonte: ANSR / radaresavista.pt (2024)<br>Use sempre com responsabilidade.</div>
+        <div class="setting-label">BIP v2.0</div>
+        <div class="setting-sub" style="line-height:1.7">123 radares SINCRO oficiais &#8212; Portugal<br>Fonte: ANSR / radaresavista.pt (ago. 2025)<br>Alerta por sentido de trânsito.<br>Use sempre com responsabilidade.</div>
       </div>
     </div>
   </div>
 </div>
-<div class="panel" id="listPanel">
-  <div class="panel-header">
-    <div class="panel-title">Lista de Radares</div>
-    <div class="list-count" id="listCount" style="color:var(--muted); font-size:12px;"></div>
-  </div>
-  <div class="panel-body" style="padding: 10px;">
-    <div class="radar-list" id="radarList" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:5px;"></div>
-  </div>
-</div>
-<div class="panel" id="mapPanel" style="padding:0;">
-  <div id="map" style="width: 100%; height: 100%; background: #0a0a0a;"></div>
-</div>
 
 <script src="radares.js"></script>
 <script>
-
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
 let gpsActive=false,watchId=null,audioCtx=null;
 let settings={vibrate:true,volume:0.8,alertDist:500,soundMode:'cronometro'};
 let bipInterval=null,currentBipRate=0,lastNearestDist=Infinity;
 let simRunning=false,deferredPrompt=null;
-let myMap = null;
-let userMarker = null;
+let userLat=null,userLng=null,userHeading=null;
+let mapThumb=null,mapExpanded=null,userMarkerThumb=null,userMarkerExp=null;
 
-function initMap() {
-  if (myMap) return; // Se já existir, não cria outro
-  
-  myMap = L.map('map', { zoomControl: false }).setView([39.5, -8.0], 6);
-  
-  // Camada de mapa escuro
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; CartoDB'
-  }).addTo(myMap);
+// ═══════════════════════════════════════════
+// DIRECTION FILTERING
+// Só alerta se o utilizador vai ao encontro do radar
+// Tolerância de ±70° em relação ao bearing do radar
+// ═══════════════════════════════════════════
+function bearingBetween(la1,ln1,la2,ln2){
+  const toR=d=>d*Math.PI/180;
+  const dL=toR(ln2-ln1);
+  const y=Math.sin(dL)*Math.cos(toR(la2));
+  const x=Math.cos(toR(la1))*Math.sin(toR(la2))-Math.sin(toR(la1))*Math.cos(toR(la2))*Math.cos(dL);
+  return (Math.atan2(y,x)*180/Math.PI+360)%360;
+}
 
-  const radarIcon = L.divIcon({
-    className: 'custom-radar-icon',
-    html: '<div style="width:10px; height:10px; background:#ff3b30; border-radius:50%; border:2px solid #fff;"></div>',
-    iconSize: [14, 14]
+function angleDiff(a,b){
+  let d=Math.abs(a-b)%360;
+  return d>180?360-d:d;
+}
+
+function radarIsRelevant(r,userLat,userLng,heading){
+  // Se ambos sentidos, sempre relevante
+  if(r.ambos)return true;
+  // Se não temos heading, aceita tudo (GPS parado / início)
+  if(heading===null||heading===undefined)return true;
+  // Bearing do utilizador para o radar
+  const bearToRadar=bearingBetween(userLat,userLng,r.lat,r.lng);
+  // O radar aponta contra o tráfego — o utilizador deve estar a vir da direção oposta ao bearing do radar
+  // Ex: radar bearing=180 (radar "vê" para Sul = fiscaliza quem vai para Sul)
+  // Utilizador a ir para Sul: heading ≈ 180 ✓
+  const diff=angleDiff(heading,r.bearing);
+  return diff<=70; // 70° de tolerância de cada lado
+}
+
+// ═══════════════════════════════════════════
+// MAP — Thumbnail + Expanded
+// ═══════════════════════════════════════════
+function initMaps(){
+  if(mapThumb)return;
+  const radarIcon=L.divIcon({
+    className:'',
+    html:'<div style="width:8px;height:8px;background:#ff3b30;border-radius:50%;border:1.5px solid rgba(255,255,255,.6)"></div>',
+    iconSize:[8,8],iconAnchor:[4,4]
   });
-
-  RADARS.forEach(r => {
-    L.marker([r.lat, r.lng], { icon: radarIcon }).addTo(myMap)
-     .bindPopup(`<strong style="color:black;">${r.limit} km/h</strong><br><span style="color:#666; font-size:10px;">${r.name}</span>`);
+  // THUMBNAIL MAP
+  mapThumb=L.map('mapThumb',{zoomControl:false,attributionControl:false,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,touchZoom:false,keyboard:false}).setView([39.5,-8.0],6);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:18}).addTo(mapThumb);
+  RADARS.forEach(r=>L.marker([r.lat,r.lng],{icon:radarIcon}).addTo(mapThumb));
+  // EXPANDED MAP
+  mapExpanded=L.map('mapExpanded',{zoomControl:true,attributionControl:false}).setView([39.5,-8.0],6);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:18}).addTo(mapExpanded);
+  RADARS.forEach(r=>{
+    L.marker([r.lat,r.lng],{icon:radarIcon}).addTo(mapExpanded)
+     .bindPopup('<b style="color:#111">'+r.limit+' km/h</b><br><span style="color:#555;font-size:11px">'+r.name.replace(/&#8212;/g,'—').replace(/&#8594;/g,'→')+'</span>');
   });
 }
 
-function updateMapLocation(lat, lng) {
-  if (!myMap) return;
-  if (!userMarker) {
-    userMarker = L.circleMarker([lat, lng], { radius: 6, color: '#30d158', fillOpacity: 1 }).addTo(myMap);
+function updateMapPosition(lat,lng){
+  if(!mapThumb)return;
+  // user dot
+  const pos=[lat,lng];
+  if(!userMarkerThumb){
+    userMarkerThumb=L.circleMarker(pos,{radius:5,color:'#30d158',fillColor:'#30d158',fillOpacity:1,weight:2}).addTo(mapThumb);
+    userMarkerExp=L.circleMarker(pos,{radius:7,color:'#30d158',fillColor:'#30d158',fillOpacity:1,weight:2}).addTo(mapExpanded);
   } else {
-    userMarker.setLatLng([lat, lng]);
+    userMarkerThumb.setLatLng(pos);
+    userMarkerExp.setLatLng(pos);
   }
-  myMap.panTo([lat, lng]);
+  mapThumb.panTo(pos,{animate:false});
 }
 
-function getAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx}
+function openMap(){
+  initMaps();
+  document.getElementById('mapOverlay').classList.add('open');
+  setTimeout(()=>{mapExpanded.invalidateSize();if(userLat)mapExpanded.setView([userLat,userLng],13);},350);
+}
+function closeMap(){document.getElementById('mapOverlay').classList.remove('open');}
 
+// ═══════════════════════════════════════════
+// AUDIO
+// ═══════════════════════════════════════════
+function getAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx}
 function playTone(freq,dur,type,vol){
   const ctx=getAudio();if(ctx.state==='suspended')ctx.resume();
   const osc=ctx.createOscillator(),gain=ctx.createGain();
@@ -373,71 +537,60 @@ function playTone(freq,dur,type,vol){
   gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
   osc.start(ctx.currentTime);osc.stop(ctx.currentTime+dur+0.02);
 }
-
 function playSound(mode,ratio){
   if(mode==='silencio')return;
-  if(mode==='cronometro'){
-    playTone(880,0.055,'sine',0.5);
-    setTimeout(()=>playTone(880,0.055,'sine',0.5),85);
-  } else if(mode==='sonar'){
+  if(mode==='cronometro'){playTone(880,0.055,'sine',0.5);setTimeout(()=>playTone(880,0.055,'sine',0.5),85);}
+  else if(mode==='sonar'){
     const ctx=getAudio();if(ctx.state==='suspended')ctx.resume();
     const osc=ctx.createOscillator(),gain=ctx.createGain();
     osc.connect(gain);gain.connect(ctx.destination);osc.type='sine';
-    osc.frequency.setValueAtTime(1100,ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(280,ctx.currentTime+0.35); 
-    gain.gain.setValueAtTime(settings.volume*0.55,ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.35);
+    osc.frequency.setValueAtTime(1100,ctx.currentTime);osc.frequency.exponentialRampToValueAtTime(280,ctx.currentTime+0.35);
+    gain.gain.setValueAtTime(settings.volume*0.55,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.35);
     osc.start(ctx.currentTime);osc.stop(ctx.currentTime+0.4);
   } else if(mode==='alerta'){
     const ctx=getAudio();if(ctx.state==='suspended')ctx.resume();
     const osc=ctx.createOscillator(),gain=ctx.createGain();
     osc.connect(gain);gain.connect(ctx.destination);osc.type='sawtooth';
-    osc.frequency.setValueAtTime(380+ratio*280,ctx.currentTime);
-    osc.frequency.linearRampToValueAtTime(580+ratio*380,ctx.currentTime+0.13);
-    gain.gain.setValueAtTime(settings.volume*0.28,ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.18);
+    osc.frequency.setValueAtTime(380+ratio*280,ctx.currentTime);osc.frequency.linearRampToValueAtTime(580+ratio*380,ctx.currentTime+0.13);
+    gain.gain.setValueAtTime(settings.volume*0.28,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.18);
     osc.start(ctx.currentTime);osc.stop(ctx.currentTime+0.2);
-  } else if(mode==='discreto'){
-    playTone(1100,0.03,'sine',0.22);
-    setTimeout(()=>playTone(850,0.03,'sine',0.18),55);
-  } else if(mode==='digital'){
-    const f=440+ratio*500;
-    playTone(f,0.07,'square',0.18);
-  }
+  } else if(mode==='discreto'){playTone(1100,0.03,'sine',0.22);setTimeout(()=>playTone(850,0.03,'sine',0.18),55);}
+  else if(mode==='digital'){playTone(440+ratio*500,0.07,'square',0.18);}
 }
-
 function doAlert(ratio){
   playSound(settings.soundMode,ratio);
-  if(settings.vibrate&&navigator.vibrate)
-    navigator.vibrate(ratio>0.8?[60,30,60]:[30,20,20]);
+  if(settings.vibrate&&navigator.vibrate)navigator.vibrate(ratio>0.8?[60,30,60]:[30,20,20]);
 }
-
 function setBipRate(dist){
-  const AD = 500;
-  const MIN_DIST = 50;
-  if (dist >= AD) { stopBips(); return; }
-  const ratio = Math.max(0, Math.min(1, (AD - dist) / (AD - MIN_DIST)));
-  const maxInterval = 2500; 
-  const minInterval = 400;
-  const interval = minInterval + Math.pow(1 - ratio, 2) * (maxInterval - minInterval);
-  if (Math.abs(interval - currentBipRate) > 50 || currentBipRate === 0) {
-    currentBipRate = interval;
-    stopBips();
-    doAlert(ratio);
-    bipInterval = setInterval(() => doAlert(ratio), interval);
+  const AD=settings.alertDist,MIN=50;
+  if(dist>=AD){stopBips();return;}
+  const ratio=Math.max(0,Math.min(1,(AD-dist)/(AD-MIN)));
+  const interval=400+Math.pow(1-ratio,2)*2100;
+  if(Math.abs(interval-currentBipRate)>50||currentBipRate===0){
+    currentBipRate=interval;stopBips();doAlert(ratio);
+    bipInterval=setInterval(()=>doAlert(ratio),interval);
   }
 }
-
 function stopBips(){if(bipInterval){clearInterval(bipInterval);bipInterval=null;}currentBipRate=0;}
 
+// ═══════════════════════════════════════════
+// DISTANCE
+// ═══════════════════════════════════════════
 function haversine(la1,ln1,la2,ln2){
   const R=6371000,dLa=(la2-la1)*Math.PI/180,dLn=(ln2-ln1)*Math.PI/180;
   const a=Math.sin(dLa/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dLn/2)**2;
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 
+// ═══════════════════════════════════════════
+// UI UPDATE
+// ═══════════════════════════════════════════
 function updateUI(distances,speed){
-  const sorted=[...distances].sort((a,b)=>a.dist-b.dist);
+  // Filter by direction — só radares relevantes para o sentido do utilizador
+  const relevant=distances.filter(r=>radarIsRelevant(r,userLat,userLng,userHeading));
+  const sorted=[...relevant].sort((a,b)=>a.dist-b.dist);
+  // Full list (todos) para a lista visual
+  const allSorted=[...distances].sort((a,b)=>a.dist-b.dist);
   const nearest=sorted[0];
   const AD=settings.alertDist;
   document.getElementById('speedVal').textContent=Math.round(speed);
@@ -463,62 +616,62 @@ function updateUI(distances,speed){
     }
     if(d<500&&lastNearestDist>=500)sendNotification(nearest.name,Math.round(d));
     lastNearestDist=d;
-    // TRUQUE DO ECRÃ DE BLOQUEIO
-    if ('mediaSession' in navigator) {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: d < 1000 ? Math.round(d) + ' metros' : (d/1000).toFixed(1) + ' km',
-        artist: nearest.name.replace(/&#8212;/g,'-').replace(/&#8594;/g,'>'),
-        album: 'BIP - Alerta de Radar'
-      });
-    }
+    if('mediaSession' in navigator)navigator.mediaSession.metadata=new MediaMetadata({
+      title:d<1000?Math.round(d)+' metros':(d/1000).toFixed(1)+' km',
+      artist:nearest.name.replace(/&#8212;/g,'-').replace(/&#8594;/g,'>'),album:'BIP'
+    });
   } else {
     display.className='radar-display';
     document.getElementById('distNumber').textContent='—';
     document.getElementById('distUnit').textContent='aguarda GPS';
-    document.getElementById('radarNameDisplay').textContent='nenhum radar próximo';
+    document.getElementById('radarNameDisplay').textContent='nenhum radar neste sentido';
     stopBips();banner.classList.remove('show');updateBipBars(0);lastNearestDist=Infinity;
-    if ('mediaSession' in navigator) {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: 'Sem radares próximos',
-        artist: 'Boa viagem!',
-        album: 'BIP - Alerta de Radar'
-      });
-    }
   }
-  renderList(sorted);
+  renderList(allSorted);
 }
-
 function updateBipBars(ratio){
   const bars=document.querySelectorAll('.bip-bar');
-  const heights=[6,10,14,18,22];
+  const h=[6,9,13,17,21];
   bars.forEach((b,i)=>{
-    const active=ratio>i/bars.length;
-    b.style.background=active?(ratio>0.7?'var(--red)':'var(--amber)'):'var(--muted2)';
-    b.style.height=heights[i]+'px';
+    b.style.background=ratio>i/bars.length?(ratio>0.7?'var(--red)':'var(--amber)'):'var(--muted2)';
+    b.style.height=h[i]+'px';
   });
 }
-
-function renderList(sorted){
+function renderList(sorted,targetId){
+  const ids=targetId?[targetId]:['radarList','radarListFull'];
   const AD=settings.alertDist;
-  const list=document.getElementById('radarList');
-  list.innerHTML=sorted.map(r=>{
-    const cls=r.dist!==undefined?(r.dist<300?'alert':r.dist<AD?'warn':''):'';
+  const html=sorted.map(r=>{
+    // Destaca só se relevante para o sentido atual
+    const rel=radarIsRelevant(r,userLat,userLng,userHeading);
+    const cls=rel&&r.dist!==undefined?(r.dist<300?'alert':r.dist<AD?'warn':''):'';
     const d=r.dist!==undefined?(r.dist<1000?Math.round(r.dist)+'m':(r.dist/1000).toFixed(1)+'km'):'—';
-    const badge=r.type==='VM'?'<span style="font-size:9px;padding:1px 4px;border-radius:4px;background:rgba(255,159,10,.2);color:var(--amber);margin-left:4px;font-family:var(--mono)">VM</span>':'';
+    const badge=r.type==='VM'?'<span style="font-size:9px;padding:1px 4px;border-radius:4px;background:rgba(255,159,10,.2);color:var(--amber);margin-left:3px;font-family:var(--mono)">VM</span>':'';
+    const dimStyle=!rel&&userHeading!==null?'opacity:.4':'';
     const nm=r.name.replace(/&#8212;/g,'—').replace(/&#8594;/g,'→');
-    return '<div class="r-item '+cls+'"><div class="r-status"></div><div class="r-info"><div class="r-name">'+nm+badge+'</div><div class="r-road">'+r.road+'</div></div><div class="r-right"><div class="r-dist">'+d+'</div><div class="r-limit">'+r.limit+' km/h</div></div></div>';
+    return '<div class="r-item '+cls+'" style="'+dimStyle+'"><div class="r-status"></div><div class="r-info"><div class="r-name">'+nm+badge+'</div><div class="r-road">'+r.road+'</div></div><div class="r-right"><div class="r-dist">'+d+'</div><div class="r-limit">'+r.limit+' km/h</div></div></div>';
   }).join('');
+  ids.forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=html;});
 }
 
+// ═══════════════════════════════════════════
+// GPS
+// ═══════════════════════════════════════════
 function toggleGPS(){
   if(!gpsActive){
     if(!navigator.geolocation){alert('GPS não disponível.');return;}
+    initMaps();
     watchId=navigator.geolocation.watchPosition(pos=>{
-      const{latitude:lat,longitude:lng,speed}=pos.coords;
-      const distances=RADARS.map(r=>({...r,dist:haversine(lat,lng,r.lat,r.lng)}));
-      updateUI(distances,(speed||0)*3.6);
-      updateMapLocation(lat, lng);
-      document.getElementById('gpsPermStatus').textContent='Ativo · '+lat.toFixed(5)+', '+lng.toFixed(5);
+      userLat=pos.coords.latitude;
+      userLng=pos.coords.longitude;
+      const speed=(pos.coords.speed||0)*3.6;
+      // Heading: usa o do GPS se disponível e velocidade>3km/h; senão mantém anterior
+      if(pos.coords.heading!==null&&pos.coords.heading!==undefined&&speed>3){
+        userHeading=pos.coords.heading;
+      }
+      const distances=RADARS.map(r=>({...r,dist:haversine(userLat,userLng,r.lat,r.lng)}));
+      updateUI(distances,speed);
+      updateMapPosition(userLat,userLng);
+      document.getElementById('gpsPermStatus').textContent='Ativo · '+userLat.toFixed(5)+', '+userLng.toFixed(5);
       document.getElementById('toggleGpsPermission').classList.add('on');
     },err=>{
       document.getElementById('gpsPermStatus').textContent='Erro: '+err.message;
@@ -529,7 +682,7 @@ function toggleGPS(){
     if('wakeLock' in navigator)navigator.wakeLock.request('screen').catch(()=>{});
   } else {
     if(watchId)navigator.geolocation.clearWatch(watchId);
-    gpsActive=false;stopBips();
+    gpsActive=false;stopBips();userHeading=null;
     document.getElementById('gpsBtn').classList.remove('on');
     document.getElementById('gpsBtnLabel').textContent='GPS off';
     document.getElementById('gpsPermStatus').textContent='Desativado';
@@ -538,6 +691,9 @@ function toggleGPS(){
   }
 }
 
+// ═══════════════════════════════════════════
+// NOTIFICATIONS / SETTINGS
+// ═══════════════════════════════════════════
 function requestNotifications(){
   if(!('Notification' in window)){document.getElementById('notifPermStatus').textContent='Não suportado';return;}
   Notification.requestPermission().then(p=>{
@@ -549,14 +705,12 @@ function sendNotification(name,dist){
   if(Notification.permission!=='granted')return;
   new Notification('Radar próximo!',{body:name.replace(/&#8212;/g,'—')+'  —  '+dist+'m',tag:'radar',renotify:true});
 }
-
 function toggleSetting(key){
   settings[key]=!settings[key];
   document.getElementById('toggle'+key.charAt(0).toUpperCase()+key.slice(1)).classList.toggle('on',settings[key]);
 }
 function updateVolume(v){settings.volume=v/100;document.getElementById('volVal').textContent=v+'%';}
 function updateAlertDist(v){settings.alertDist=parseInt(v);document.getElementById('alertDistVal').textContent=v+'m';}
-
 function selectSound(mode){
   settings.soundMode=mode;
   document.querySelectorAll('.sound-opt').forEach(el=>el.classList.remove('selected'));
@@ -566,49 +720,49 @@ function testCurrentSound(){
   getAudio();let r=0;
   const iv=setInterval(()=>{r=Math.min(1,r+0.12);doAlert(r);if(r>=1)clearInterval(iv);},280);
 }
-
 function runSimulation(){
-  if(simRunning)return;
-  simRunning=true;hideSettings();
+  if(simRunning)return;simRunning=true;showPanel('main');
+  // Simula heading Norte para testar radares S→N
+  userHeading=0;userLat=41.15;userLng=-8.58;
   let d=settings.alertDist+300;
   const iv=setInterval(()=>{
     d-=20;
-    if(d<-400){clearInterval(iv);simRunning=false;stopBips();renderList(RADARS);return;}
+    if(d<-400){clearInterval(iv);simRunning=false;stopBips();userHeading=null;renderList(RADARS);return;}
     const fakes=RADARS.map((r,i)=>({...r,dist:i===0?Math.max(0,d):3000+i*400}));
     updateUI(fakes,90);
   },100);
 }
 
-function showPanel(panelId) {
-  // Fecha todos os painéis e remove o estado 'active' de todos os botões
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('open'));
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  
-  if (panelId === 'main') {
+// ═══════════════════════════════════════════
+// PANEL NAV
+// ═══════════════════════════════════════════
+function showPanel(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('open'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  if(id==='main'){
     document.getElementById('navMain').classList.add('active');
   } else {
-    // Abre o painel selecionado
-    document.getElementById(panelId).classList.add('open');
-    // Ativa o botão correspondente no menu inferior
-    const btnId = 'nav' + panelId.charAt(0).toUpperCase() + panelId.slice(1).replace('Panel','');
-    const btn = document.getElementById(btnId);
-    if(btn) btn.classList.add('active');
-    
-    // Se abrir o painel do mapa, inicializa o mapa
-    if (panelId === 'mapPanel') {
-      setTimeout(() => { initMap(); myMap.invalidateSize(); }, 300);
-    }
+    document.getElementById(id).classList.add('open');
+    const map={'listPanel':'navList','soundPanel':'navSound','settingsPanel':'navSettings'};
+    if(map[id])document.getElementById(map[id]).classList.add('active');
   }
 }
-// Atalhos para compatibilidade com outros botões do app
-function hideSettings() { showPanel('main'); }
-function hideSoundPanel() { showPanel('main'); }
 
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;});
+function installApp(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(()=>{deferredPrompt=null;});}}
 
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
-if(Notification.permission==='granted'){document.getElementById('toggleNotif').classList.add('on');document.getElementById('notifPermStatus').textContent='Autorizado';}
+if(Notification.permission==='granted'){
+  document.getElementById('toggleNotif').classList.add('on');
+  document.getElementById('notifPermStatus').textContent='Autorizado';
+}
 document.getElementById('listCount').textContent=RADARS.length+' radares';
 renderList(RADARS);
+// Inicia os mapas ao carregar (thumbnail visível imediatamente)
+window.addEventListener('load',()=>{ setTimeout(initMaps, 500); });
 </script>
 </body>
 </html>
