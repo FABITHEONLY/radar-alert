@@ -3,675 +3,865 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#0a0a0a">
+<meta name="theme-color" content="#080808">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="BIP">
 <link rel="manifest" href="manifest.json">
-<title>BIP — Radar Alert</title>
+<title>BIP</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-:root{--bg:#0a0a0a;--surface:#141414;--surface2:#1c1c1c;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);--text:#f0f0f0;--muted:#666;--muted2:#444;--red:#ff3b30;--red-dim:rgba(255,59,48,0.15);--amber:#ff9f0a;--amber-dim:rgba(255,159,10,0.12);--green:#30d158;--green-dim:rgba(48,209,88,0.12);--mono:'DM Mono',monospace;--display:'Syne',sans-serif}
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden;background:var(--bg)}
-body{font-family:var(--display);color:var(--text);display:flex;flex-direction:column}
-.header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 0;flex-shrink:0}
-.logo-wrap{display:flex;align-items:center}
-.gps-btn{display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:var(--muted);font-family:var(--mono);font-size:12px;cursor:pointer;transition:all .2s}
-.gps-btn.on{border-color:var(--green);color:var(--green);background:var(--green-dim)}
-.gps-dot{width:7px;height:7px;border-radius:50%;background:currentColor}
-.gps-btn.on .gps-dot{animation:blink 1.2s ease-in-out infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
-.main{flex:1;display:flex;flex-direction:column;padding:12px 20px;gap:10px;overflow:hidden;min-height:0}
-
-/* ── TOP ROW: radar circle + map thumbnail ── */
-.top-row{display:flex;gap:10px;flex-shrink:0;align-items:stretch}
-
-.radar-display{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px 12px;background:var(--surface);border-radius:20px;border:1px solid var(--border);overflow:hidden;transition:border-color .4s,background .4s;min-width:0}
-.radar-display.alert{border-color:var(--red);background:var(--red-dim)}
-.radar-display.warn{border-color:var(--amber);background:var(--amber-dim)}
-.ring-container{position:relative;width:100px;height:100px;flex-shrink:0}
-.ring{position:absolute;border-radius:50%;border:1px solid var(--border2);top:50%;left:50%;transform:translate(-50%,-50%);transition:border-color .3s}
-.ring-1{width:100px;height:100px}.ring-2{width:70px;height:70px}.ring-3{width:44px;height:44px}
-.ring-inner{position:absolute;width:26px;height:26px;border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--surface2);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;transition:background .3s,border-color .3s}
-.radar-display.alert .ring{border-color:rgba(255,59,48,.3)}
-.radar-display.alert .ring-inner{background:var(--red);border-color:var(--red)}
-.radar-display.warn .ring{border-color:rgba(255,159,10,.3)}
-.radar-display.warn .ring-inner{background:var(--amber);border-color:var(--amber)}
-.pulse-ring{position:absolute;border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);width:26px;height:26px;border:2px solid var(--red);opacity:0;pointer-events:none}
-.radar-display.alert .pulse-ring{animation:pulse-out .9s ease-out infinite}
-@keyframes pulse-out{0%{width:26px;height:26px;opacity:.8}100%{width:105px;height:105px;opacity:0}}
-.dist-display{margin-top:10px;text-align:center}
-.dist-number{font-size:38px;font-weight:800;line-height:1;font-family:var(--mono);transition:color .3s;color:var(--text)}
-.radar-display.alert .dist-number{color:var(--red)}
-.radar-display.warn .dist-number{color:var(--amber)}
-.dist-unit{font-size:12px;color:var(--muted);font-family:var(--mono);margin-top:2px}
-.radar-name-display{font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:4px;text-align:center;height:14px;transition:color .3s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-.radar-display.alert .radar-name-display,.radar-display.warn .radar-name-display{color:var(--text)}
-
-/* ── MAP THUMBNAIL ── */
-.map-thumb-wrap{
-  position:relative;
-  width:130px;
-  flex-shrink:0;
-  border-radius:20px;
-  overflow:hidden;
-  cursor:pointer;
-  border:1px solid var(--border);
-  background:var(--surface);
-}
-.map-thumb-wrap:active{opacity:.85}
-#mapThumb{width:100%;height:100%;background:#0f1117}
-
-/* Vignette overlay — always visible, dims the edges */
-.map-thumb-wrap::after{
-  content:'';
-  position:absolute;
-  inset:0;
-  border-radius:20px;
-  background:radial-gradient(ellipse at center,transparent 30%,rgba(10,10,10,0.72) 100%);
-  pointer-events:none;
-  transition:opacity .3s;
-}
-.map-thumb-label{
-  position:absolute;
-  bottom:8px;left:0;right:0;
-  text-align:center;
-  font-size:10px;font-family:var(--mono);
-  color:rgba(255,255,255,0.5);
-  pointer-events:none;
-  z-index:2;
+:root {
+  --bg: #080808;
+  --surface: #111111;
+  --surface2: #1a1a1a;
+  --surface3: #222222;
+  --border: rgba(255,255,255,0.055);
+  --border2: rgba(255,255,255,0.11);
+  --border3: rgba(255,255,255,0.18);
+  --text: #f2f2f2;
+  --muted: #555;
+  --muted2: #333;
+  --red: #ff3b30;
+  --red-dim: rgba(255,59,48,0.12);
+  --red-mid: rgba(255,59,48,0.22);
+  --amber: #ff9500;
+  --amber-dim: rgba(255,149,0,0.11);
+  --green: #34c759;
+  --green-dim: rgba(52,199,89,0.11);
+  --mono: 'DM Mono', monospace;
+  --sans: 'Syne', sans-serif;
+  --r-sm: 14px;
+  --r-md: 18px;
+  --r-lg: 22px;
+  --r-xl: 26px;
 }
 
-/* ── MAP EXPANDED OVERLAY ── */
-.map-overlay{
-  position:fixed;inset:0;
-  z-index:200;
-  display:flex;align-items:center;justify-content:center;
-  opacity:0;pointer-events:none;
-  transition:opacity .35s;
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; background: var(--bg); }
+body { font-family: var(--sans); color: var(--text); display: flex; flex-direction: column; }
+
+/* ═══ HEADER ═══ */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px 0; flex-shrink: 0;
 }
-.map-overlay.open{opacity:1;pointer-events:all}
-/* blur backdrop — clicking it closes */
-.map-blur-bg{
-  position:absolute;inset:0;
-  backdrop-filter:blur(18px);
-  -webkit-backdrop-filter:blur(18px);
-  background:rgba(10,10,10,0.55);
-  cursor:pointer;
+.logo svg { display: block; }
+.gps-pill {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 13px; border-radius: 99px;
+  border: 1px solid var(--border2);
+  background: var(--surface); color: var(--muted);
+  font-family: var(--mono); font-size: 11px; cursor: pointer;
+  transition: all .25s; letter-spacing: .04em;
 }
-.map-expanded{
-  position:relative;
-  width:calc(100% - 40px);
-  max-width:520px;
-  height:58vh;
-  border-radius:22px;
-  overflow:hidden;
-  border:1px solid var(--border2);
-  transform:scale(0.88);
-  transition:transform .35s cubic-bezier(.32,.72,0,1);
-  z-index:1;
+.gps-pill.on { border-color: var(--green); color: var(--green); background: var(--green-dim); }
+.gps-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.gps-pill.on .gps-dot { animation: blink 1.4s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+
+/* ═══ SCREEN SYSTEM ═══ */
+/* Each screen is a full-height flex column, stacked horizontally */
+.screen-host {
+  flex: 1; min-height: 0;
+  display: flex; overflow: hidden;
+  position: relative;
 }
-.map-overlay.open .map-expanded{transform:scale(1)}
-#mapExpanded{width:100%;height:100%}
-.map-close-btn{
-  position:absolute;top:12px;right:12px;
-  width:30px;height:30px;border-radius:50%;
-  background:rgba(10,10,10,.75);border:1px solid var(--border2);
-  color:var(--text);font-size:16px;
-  display:flex;align-items:center;justify-content:center;
-  cursor:pointer;z-index:2;
+.screen {
+  flex-shrink: 0; width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  transition: transform .38s cubic-bezier(.4,0,.2,1), opacity .38s;
+  will-change: transform;
+}
+/* States driven by JS classes on .screen-host */
+.screen-host[data-active="0"] .screen:nth-child(1) { transform: translateX(0); opacity:1; }
+.screen-host[data-active="0"] .screen:nth-child(2) { transform: translateX(100%); opacity:0; pointer-events:none; }
+.screen-host[data-active="0"] .screen:nth-child(3) { transform: translateX(100%); opacity:0; pointer-events:none; }
+.screen-host[data-active="0"] .screen:nth-child(4) { transform: translateX(100%); opacity:0; pointer-events:none; }
+
+.screen-host[data-active="1"] .screen:nth-child(1) { transform: translateX(-100%); opacity:0; pointer-events:none; }
+.screen-host[data-active="1"] .screen:nth-child(2) { transform: translateX(0); opacity:1; }
+.screen-host[data-active="1"] .screen:nth-child(3) { transform: translateX(100%); opacity:0; pointer-events:none; }
+.screen-host[data-active="1"] .screen:nth-child(4) { transform: translateX(100%); opacity:0; pointer-events:none; }
+
+.screen-host[data-active="2"] .screen:nth-child(1) { transform: translateX(-100%); opacity:0; pointer-events:none; }
+.screen-host[data-active="2"] .screen:nth-child(2) { transform: translateX(-100%); opacity:0; pointer-events:none; }
+.screen-host[data-active="2"] .screen:nth-child(3) { transform: translateX(0); opacity:1; }
+.screen-host[data-active="2"] .screen:nth-child(4) { transform: translateX(100%); opacity:0; pointer-events:none; }
+
+.screen-host[data-active="3"] .screen:nth-child(1) { transform: translateX(-100%); opacity:0; pointer-events:none; }
+.screen-host[data-active="3"] .screen:nth-child(2) { transform: translateX(-100%); opacity:0; pointer-events:none; }
+.screen-host[data-active="3"] .screen:nth-child(3) { transform: translateX(-100%); opacity:0; pointer-events:none; }
+.screen-host[data-active="3"] .screen:nth-child(4) { transform: translateX(0); opacity:1; }
+
+/* ═══ MAIN SCREEN ═══ */
+.main-content {
+  flex: 1; min-height: 0;
+  display: flex; flex-direction: column;
+  padding: 14px 16px 10px; gap: 10px;
 }
 
-.alert-banner{display:none;align-items:center;gap:10px;padding:9px 13px;border-radius:12px;background:var(--red-dim);border:1px solid var(--red);flex-shrink:0}
-.alert-banner.show{display:flex}
-.alert-icon{font-size:14px;flex-shrink:0;animation:blink 1s ease-in-out infinite}
-.alert-text{font-size:12px;font-weight:700;color:#ff6b63}
-.alert-sub{font-size:10px;color:rgba(255,107,99,.7);margin-top:1px;font-family:var(--mono)}
-.info-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;flex-shrink:0}
-.info-card{background:var(--surface);border-radius:14px;border:1px solid var(--border);padding:10px 14px}
-.info-label{font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
-.info-value{font-size:24px;font-weight:800;font-family:var(--mono);line-height:1}
-.info-unit{font-size:11px;color:var(--muted);margin-left:2px}
-.bip-bars{display:flex;align-items:flex-end;gap:3px;height:24px}
-.bip-bar{width:7px;border-radius:3px;background:var(--muted2);transition:background .15s}
-.list-section{flex:1;min-height:0;display:flex;flex-direction:column}
-.list-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-shrink:0}
-.list-title{font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em}
-.list-count{font-size:11px;color:var(--muted);font-family:var(--mono)}
-.radar-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:5px;padding-bottom:4px}
-.radar-list::-webkit-scrollbar{width:2px}
-.radar-list::-webkit-scrollbar-thumb{background:var(--muted2);border-radius:2px}
-.r-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:11px;border:1px solid var(--border);background:var(--surface);transition:all .3s}
-.r-item.alert{border-color:var(--red);background:var(--red-dim)}
-.r-item.warn{border-color:var(--amber);background:var(--amber-dim)}
-.r-status{width:6px;height:6px;border-radius:50%;background:var(--muted2);flex-shrink:0;transition:background .3s}
-.r-item.alert .r-status{background:var(--red);box-shadow:0 0 6px var(--red)}
-.r-item.warn .r-status{background:var(--amber)}
-.r-info{flex:1;min-width:0}
-.r-name{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.r-road{font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:1px}
-.r-right{text-align:right;flex-shrink:0}
-.r-dist{font-size:12px;font-weight:500;font-family:var(--mono)}
-.r-item.alert .r-dist{color:var(--red)}
-.r-item.warn .r-dist{color:var(--amber)}
-.r-limit{font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:1px}
-.bottom-nav{display:flex;border-top:1px solid var(--border);padding:0 8px;padding-bottom:env(safe-area-inset-bottom,8px);flex-shrink:0}
-.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px;border:none;background:transparent;color:var(--muted);font-family:var(--mono);font-size:10px;cursor:pointer;border-radius:10px;transition:color .2s}
-.nav-btn.active{color:var(--text)}
-.nav-btn svg{width:18px;height:18px}
-.panel{position:fixed;inset:0;background:var(--bg);z-index:100;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .35s cubic-bezier(.32,.72,0,1)}
-.panel.open{transform:translateY(0)}
-.panel-header{display:flex;align-items:center;justify-content:space-between;padding:20px 20px 14px;flex-shrink:0;border-bottom:1px solid var(--border)}
-.panel-title{font-size:18px;font-weight:800}
-.close-btn{width:30px;height:30px;border-radius:50%;border:1px solid var(--border2);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:18px;line-height:1}
-.panel-body{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:20px}
-.setting-group{display:flex;flex-direction:column;gap:10px}
-.setting-group-title{font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em}
-.setting-row{display:flex;align-items:center;justify-content:space-between;padding:13px 15px;background:var(--surface);border-radius:14px;border:1px solid var(--border)}
-.setting-label{font-size:14px;font-weight:700}
-.setting-sub{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:2px}
-.toggle{width:44px;height:26px;border-radius:13px;background:var(--muted2);border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0}
-.toggle.on{background:var(--green)}
-.toggle::after{content:'';position:absolute;width:20px;height:20px;border-radius:50%;background:white;top:3px;left:3px;transition:transform .2s}
-.toggle.on::after{transform:translateX(18px)}
-.sound-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.sound-opt{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 10px;background:var(--surface);border:1px solid var(--border);border-radius:14px;cursor:pointer;transition:all .2s}
-.sound-opt.selected{border-color:var(--red);background:var(--red-dim)}
-.sound-opt-icon{width:28px;height:28px;display:flex;align-items:center;justify-content:center}
-.sound-opt-name{font-size:12px;font-weight:700;text-align:center}
-.sound-opt-sub{font-size:10px;color:var(--muted);font-family:var(--mono);text-align:center;line-height:1.4}
-.sound-opt.selected .sound-opt-sub{color:rgba(255,107,99,.8)}
-.sim-btn{width:100%;padding:14px;border-radius:14px;border:1px solid var(--border2);background:var(--surface);color:var(--text);font-family:var(--display);font-size:14px;font-weight:700;cursor:pointer;transition:background .15s}
-.sim-btn:active{background:var(--surface2)}
-.install-banner{padding:13px 15px;background:rgba(48,209,88,.1);border:1px solid rgba(48,209,88,.3);border-radius:14px}
-.install-title{font-size:13px;font-weight:700;color:var(--green)}
-.install-sub{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:2px}
-.install-btn{margin-top:10px;width:100%;padding:10px;border-radius:10px;border:none;background:var(--green);color:#000;font-family:var(--display);font-size:13px;font-weight:700;cursor:pointer}
-.perm-status{font-family:var(--mono);font-size:11px;padding:9px 13px;border-radius:10px;background:var(--surface2);color:var(--muted);margin-top:4px}
-/* leaflet dark fix */
-.leaflet-container{background:#0f1117!important}
-.leaflet-tile{filter:brightness(.85) saturate(.9)}
+/* TOP ROW — two equal cards */
+.top-row {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; flex-shrink: 0;
+}
+
+/* Radar card */
+.radar-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-xl); padding: 20px 12px 16px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  position: relative; overflow: hidden;
+  transition: border-color .4s, background .4s;
+  aspect-ratio: 1;
+}
+.radar-card.warn { border-color: rgba(255,149,0,.45); background: var(--amber-dim); }
+.radar-card.alert { border-color: rgba(255,59,48,.55); background: var(--red-dim); }
+
+.rings { position: relative; width: 90px; height: 90px; }
+.ring {
+  position: absolute; border-radius: 50%;
+  border: 1px solid var(--border2);
+  top: 50%; left: 50%; transform: translate(-50%,-50%);
+  transition: border-color .35s;
+}
+.r1 { width: 90px; height: 90px; }
+.r2 { width: 63px; height: 63px; }
+.r3 { width: 40px; height: 40px; }
+.radar-card.warn .ring { border-color: rgba(255,149,0,.25); }
+.radar-card.alert .ring { border-color: rgba(255,59,48,.28); }
+
+.radar-dot {
+  position: absolute; width: 24px; height: 24px; border-radius: 50%;
+  top: 50%; left: 50%; transform: translate(-50%,-50%);
+  background: var(--surface2); border: 1px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  transition: background .3s, border-color .3s;
+}
+.radar-card.warn .radar-dot { background: var(--amber); border-color: var(--amber); }
+.radar-card.alert .radar-dot { background: var(--red); border-color: var(--red); }
+
+.pulse {
+  position: absolute; border-radius: 50%;
+  top: 50%; left: 50%; transform: translate(-50%,-50%);
+  width: 24px; height: 24px;
+  border: 1.5px solid var(--red); opacity: 0; pointer-events: none;
+}
+.radar-card.alert .pulse { animation: pulse-out .85s ease-out infinite; }
+@keyframes pulse-out { 0%{width:24px;height:24px;opacity:.85} 100%{width:96px;height:96px;opacity:0} }
+
+.dist-val {
+  margin-top: 10px; font-size: 32px; font-weight: 800;
+  font-family: var(--mono); line-height: 1; color: var(--text);
+  transition: color .3s; letter-spacing: -.02em;
+}
+.radar-card.warn .dist-val { color: var(--amber); }
+.radar-card.alert .dist-val { color: var(--red); }
+.dist-u {
+  font-size: 11px; color: var(--muted); font-family: var(--mono);
+  margin-top: 3px; letter-spacing: .04em;
+}
+
+/* Map thumbnail card */
+.map-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-xl); overflow: hidden;
+  position: relative; cursor: pointer;
+  aspect-ratio: 1;
+}
+.map-card:active { opacity: .85; }
+#mapThumb { width: 100%; height: 100%; }
+.map-vignette {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at 50% 50%, transparent 25%, rgba(8,8,8,.7) 100%);
+}
+.map-tap-hint {
+  position: absolute; bottom: 9px; left: 0; right: 0;
+  text-align: center; font-size: 9px; font-family: var(--mono);
+  color: rgba(255,255,255,.35); letter-spacing: .06em; pointer-events: none;
+}
+
+/* Map expanded overlay */
+.map-overlay {
+  position: fixed; inset: 0; z-index: 300;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity .32s;
+}
+.map-overlay.open { opacity: 1; pointer-events: all; }
+.map-backdrop {
+  position: absolute; inset: 0;
+  backdrop-filter: blur(22px) saturate(1.2);
+  -webkit-backdrop-filter: blur(22px) saturate(1.2);
+  background: rgba(8,8,8,.6);
+  cursor: pointer;
+}
+.map-sheet {
+  position: relative; z-index: 1;
+  width: calc(100% - 32px); max-width: 500px;
+  height: 56vh; border-radius: 24px; overflow: hidden;
+  border: 1px solid var(--border2);
+  transform: scale(.9) translateY(20px);
+  transition: transform .36s cubic-bezier(.32,.72,0,1);
+}
+.map-overlay.open .map-sheet { transform: scale(1) translateY(0); }
+#mapExpanded { width: 100%; height: 100%; }
+.map-sheet-close {
+  position: absolute; top: 12px; right: 12px; z-index: 2;
+  width: 30px; height: 30px; border-radius: 50%;
+  background: rgba(8,8,8,.75); border: 1px solid var(--border2);
+  color: rgba(255,255,255,.7); font-size: 15px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+
+/* NEAREST RADAR CARD */
+.nearest-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 14px 16px;
+  flex-shrink: 0;
+  transition: border-color .4s, background .4s;
+}
+.nearest-card.warn { border-color: rgba(255,149,0,.4); background: var(--amber-dim); }
+.nearest-card.alert { border-color: rgba(255,59,48,.4); background: var(--red-dim); }
+.nc-label {
+  font-size: 10px; color: var(--muted); font-family: var(--mono);
+  text-transform: uppercase; letter-spacing: .1em; margin-bottom: 6px;
+}
+.nc-name {
+  font-size: 14px; font-weight: 700; line-height: 1.3;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: color .3s;
+}
+.nearest-card.alert .nc-name { color: var(--red); }
+.nearest-card.warn .nc-name { color: var(--amber); }
+.nc-meta {
+  display: flex; align-items: center; gap: 10px; margin-top: 5px;
+  font-family: var(--mono); font-size: 11px; color: var(--muted);
+}
+.nc-badge {
+  padding: 2px 7px; border-radius: 99px;
+  background: var(--surface3); border: 1px solid var(--border2);
+  font-size: 10px; font-family: var(--mono);
+}
+.nc-badge.vm { background: rgba(255,149,0,.12); border-color: rgba(255,149,0,.3); color: var(--amber); }
+
+/* SPEED + DIRECTION ROW */
+.info-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex-shrink: 0;
+}
+.info-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); padding: 13px 16px;
+}
+.ic-label {
+  font-size: 10px; color: var(--muted); font-family: var(--mono);
+  text-transform: uppercase; letter-spacing: .1em; margin-bottom: 5px;
+}
+.ic-val {
+  font-size: 28px; font-weight: 800; font-family: var(--mono);
+  line-height: 1; letter-spacing: -.02em;
+}
+.ic-unit { font-size: 11px; color: var(--muted); margin-left: 2px; }
+.dir-arrow {
+  font-size: 22px; line-height: 1;
+  transition: transform .4s cubic-bezier(.32,.72,0,1);
+  display: inline-block;
+}
+
+/* ═══ LIST SCREEN ═══ */
+.screen-header {
+  padding: 20px 20px 0; flex-shrink: 0;
+  display: flex; align-items: baseline; justify-content: space-between;
+}
+.screen-title { font-size: 22px; font-weight: 800; }
+.screen-count { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+
+.list-scroll {
+  flex: 1; overflow-y: auto; padding: 12px 16px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.list-scroll::-webkit-scrollbar { width: 2px; }
+.list-scroll::-webkit-scrollbar-thumb { background: var(--muted2); border-radius: 2px; }
+
+.r-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 14px; border-radius: var(--r-md);
+  border: 1px solid var(--border); background: var(--surface);
+  transition: border-color .3s, background .3s, opacity .3s;
+}
+.r-item.warn { border-color: rgba(255,149,0,.4); background: var(--amber-dim); }
+.r-item.alert { border-color: rgba(255,59,48,.4); background: var(--red-dim); }
+.r-item.dimmed { opacity: .35; }
+.r-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--muted2); flex-shrink: 0; transition: background .3s;
+}
+.r-item.warn .r-dot { background: var(--amber); }
+.r-item.alert .r-dot { background: var(--red); box-shadow: 0 0 6px var(--red); }
+.r-info { flex: 1; min-width: 0; }
+.r-name { font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.r-road { font-size: 10px; color: var(--muted); font-family: var(--mono); margin-top: 2px; }
+.r-right { text-align: right; flex-shrink: 0; }
+.r-dist { font-size: 12px; font-weight: 600; font-family: var(--mono); }
+.r-item.warn .r-dist { color: var(--amber); }
+.r-item.alert .r-dist { color: var(--red); }
+.r-lim { font-size: 10px; color: var(--muted); font-family: var(--mono); margin-top: 2px; }
+
+/* ═══ SOUND SCREEN ═══ */
+.sound-content { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.sg-title { font-size: 10px; color: var(--muted); font-family: var(--mono); text-transform: uppercase; letter-spacing: .1em; padding: 0 4px; margin-bottom: 2px; }
+.sound-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.s-opt {
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
+  padding: 16px 12px; border-radius: var(--r-md);
+  border: 1px solid var(--border); background: var(--surface);
+  cursor: pointer; transition: all .2s;
+}
+.s-opt.on { border-color: var(--red); background: var(--red-dim); }
+.s-icon { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; color: var(--muted); }
+.s-opt.on .s-icon { color: var(--red); }
+.s-name { font-size: 12px; font-weight: 700; }
+.s-sub { font-size: 10px; color: var(--muted); font-family: var(--mono); text-align: center; line-height: 1.4; }
+.vol-row {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 14px 16px;
+}
+.vol-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.vol-label { font-size: 13px; font-weight: 700; }
+.vol-val { font-size: 12px; font-family: var(--mono); color: var(--muted); }
+.test-btn {
+  width: 100%; padding: 14px; border-radius: var(--r-md);
+  border: 1px solid var(--border2); background: var(--surface);
+  color: var(--text); font-family: var(--sans); font-size: 14px;
+  font-weight: 700; cursor: pointer; transition: background .15s;
+  letter-spacing: .01em;
+}
+.test-btn:active { background: var(--surface2); }
+
+/* ═══ SETTINGS SCREEN ═══ */
+.settings-content { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.s-row {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 14px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.s-row.col { flex-direction: column; align-items: stretch; gap: 10px; }
+.s-row-label { font-size: 14px; font-weight: 700; }
+.s-row-sub { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top: 2px; }
+.toggle {
+  width: 44px; height: 26px; border-radius: 13px;
+  background: var(--muted2); border: none; cursor: pointer;
+  position: relative; transition: background .22s; flex-shrink: 0;
+}
+.toggle.on { background: var(--green); }
+.toggle::after {
+  content: ''; position: absolute;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: white; top: 3px; left: 3px; transition: transform .22s;
+}
+.toggle.on::after { transform: translateX(18px); }
+.perm-tag {
+  font-size: 11px; font-family: var(--mono); color: var(--muted);
+  padding: 6px 10px; border-radius: 8px; background: var(--surface2);
+}
+.sim-btn {
+  width: 100%; padding: 14px; border-radius: var(--r-md);
+  border: 1px solid var(--border2); background: var(--surface);
+  color: var(--text); font-family: var(--sans); font-size: 14px;
+  font-weight: 700; cursor: pointer; transition: background .15s;
+}
+.sim-btn:active { background: var(--surface2); }
+.about-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 14px 16px;
+}
+.about-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+.about-sub { font-size: 11px; color: var(--muted); font-family: var(--mono); line-height: 1.8; }
+
+/* ═══ BOTTOM NAV ═══ */
+.bottom-nav {
+  display: flex; flex-shrink: 0;
+  border-top: 1px solid var(--border);
+  padding: 0 4px; padding-bottom: env(safe-area-inset-bottom, 6px);
+  background: var(--bg);
+}
+.nav-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 4px;
+  padding: 9px 4px; border: none; background: transparent;
+  color: var(--muted); cursor: pointer; border-radius: 10px;
+  transition: color .2s;
+}
+.nav-btn.on { color: var(--text); }
+.nav-btn svg { width: 20px; height: 20px; stroke-width: 1.6; }
+.nav-btn span { font-size: 9px; font-family: var(--mono); letter-spacing: .04em; }
+
+/* Leaflet dark */
+.leaflet-container { background: #0b0d12 !important; }
+.leaflet-tile { filter: brightness(.82) saturate(.8); }
+.leaflet-control-zoom a { background: var(--surface2) !important; color: var(--text) !important; border-color: var(--border2) !important; }
 </style>
 </head>
 <body>
 
+<!-- HEADER -->
 <div class="header">
-  <div class="logo-wrap">
-    <svg width="68" height="28" viewBox="0 0 68 28" fill="none">
-      <text x="1" y="23" font-family="'Arial Black','Helvetica Neue',sans-serif" font-weight="900" font-size="26" letter-spacing="-1" fill="white">BIP</text>
-      <line x1="43" y1="4" x2="54" y2="26" stroke="#ff3b30" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
-      <rect x="1" y="26" width="46" height="2" rx="1" fill="#ff3b30"/>
+  <div class="logo">
+    <svg width="62" height="26" viewBox="0 0 62 26" fill="none">
+      <text x="0" y="22" font-family="'Arial Black','Helvetica Neue',sans-serif" font-weight="900" font-size="24" letter-spacing="-1" fill="white">BIP</text>
+      <line x1="40" y1="3" x2="50" y2="24" stroke="#ff3b30" stroke-width="2.8" stroke-linecap="round" opacity=".8"/>
+      <rect x="0" y="24.5" width="42" height="1.8" rx="1" fill="#ff3b30"/>
     </svg>
   </div>
-  <button class="gps-btn" id="gpsBtn" onclick="toggleGPS()">
+  <button class="gps-pill" id="gpsBtn" onclick="toggleGPS()">
     <span class="gps-dot"></span>
     <span id="gpsBtnLabel">GPS off</span>
   </button>
 </div>
 
-<div class="main">
-  <!-- TOP ROW: radar + map thumbnail -->
-  <div class="top-row">
-    <div class="radar-display" id="radarDisplay">
-      <div class="ring-container">
-        <div class="ring ring-1"></div><div class="ring ring-2"></div><div class="ring ring-3"></div>
-        <div class="pulse-ring"></div>
-        <div class="ring-inner">
-          <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="2.5" fill="white"/><path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13" stroke="white" stroke-width="1.2" stroke-linecap="round"/></svg>
+<!-- SCREENS -->
+<div class="screen-host" id="screenHost" data-active="0">
+
+  <!-- ══ SCREEN 0: RADAR ══ -->
+  <div class="screen">
+    <div class="main-content">
+      <!-- TOP ROW -->
+      <div class="top-row">
+        <!-- Radar card -->
+        <div class="radar-card" id="radarCard">
+          <div class="rings">
+            <div class="ring r1"></div>
+            <div class="ring r2"></div>
+            <div class="ring r3"></div>
+            <div class="pulse"></div>
+            <div class="radar-dot">
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+                <circle cx="5.5" cy="5.5" r="2" fill="white"/>
+                <path d="M5.5 1v1.2M5.5 8.8V10M1 5.5h1.2M8.8 5.5H10" stroke="white" stroke-width="1.1" stroke-linecap="round"/>
+              </svg>
+            </div>
+          </div>
+          <div class="dist-val" id="distVal">—</div>
+          <div class="dist-u" id="distU">aguarda GPS</div>
+        </div>
+
+        <!-- Map thumbnail card -->
+        <div class="map-card" id="mapCard" onclick="openMap()">
+          <div id="mapThumb"></div>
+          <div class="map-vignette"></div>
+          <div class="map-tap-hint">MAPA</div>
         </div>
       </div>
-      <div class="dist-display">
-        <div class="dist-number" id="distNumber">—</div>
-        <div class="dist-unit" id="distUnit">aguarda GPS</div>
+
+      <!-- NEAREST RADAR CARD -->
+      <div class="nearest-card" id="nearestCard">
+        <div class="nc-label">Radar mais próximo</div>
+        <div class="nc-name" id="ncName">Nenhum radar neste sentido</div>
+        <div class="nc-meta">
+          <span id="ncDist" style="color:var(--text);font-weight:600">—</span>
+          <span id="ncLimit" class="nc-badge">— km/h</span>
+          <span id="ncType" class="nc-badge" style="display:none"></span>
+        </div>
       </div>
-      <div class="radar-name-display" id="radarNameDisplay">nenhum radar próximo</div>
-    </div>
 
-    <!-- MAP THUMBNAIL -->
-    <div class="map-thumb-wrap" id="mapThumbWrap" onclick="openMap()">
-      <div id="mapThumb"></div>
-      <div class="map-thumb-label">mapa</div>
-    </div>
-  </div>
-
-  <!-- ALERT BANNER -->
-  <div id="alertBanner" class="alert-banner">
-    <div class="alert-icon">&#9888;</div>
-    <div>
-      <div class="alert-text" id="alertName">Radar!</div>
-      <div class="alert-sub" id="alertSub"></div>
-    </div>
-  </div>
-
-  <!-- INFO ROW -->
-  <div class="info-row">
-    <div class="info-card">
-      <div class="info-label">Velocidade</div>
-      <div><span class="info-value" id="speedVal">0</span><span class="info-unit">km/h</span></div>
-    </div>
-    <div class="info-card">
-      <div class="info-label">Intensidade</div>
-      <div class="bip-bars" id="bipBars">
-        <div class="bip-bar" style="height:6px"></div>
-        <div class="bip-bar" style="height:9px"></div>
-        <div class="bip-bar" style="height:13px"></div>
-        <div class="bip-bar" style="height:17px"></div>
-        <div class="bip-bar" style="height:21px"></div>
+      <!-- SPEED + DIRECTION -->
+      <div class="info-row">
+        <div class="info-card">
+          <div class="ic-label">Velocidade</div>
+          <div>
+            <span class="ic-val" id="speedVal">0</span>
+            <span class="ic-unit">km/h</span>
+          </div>
+        </div>
+        <div class="info-card">
+          <div class="ic-label">Sentido</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="dir-arrow" id="dirArrow">↑</span>
+            <span style="font-size:11px;color:var(--muted);font-family:var(--mono)" id="dirLabel">—</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- RADAR LIST (inline, scrollable) -->
-  <div class="list-section">
-    <div class="list-header">
-      <div class="list-title">Radares SINCRO — Portugal</div>
-      <div class="list-count" id="listCount"></div>
+  <!-- ══ SCREEN 1: LISTA ══ -->
+  <div class="screen">
+    <div class="screen-header">
+      <div class="screen-title">Radares</div>
+      <div class="screen-count" id="listCount"></div>
     </div>
-    <div class="radar-list" id="radarList"></div>
+    <div class="list-scroll" id="radarList"></div>
   </div>
-</div>
 
-<!-- MAP EXPANDED OVERLAY -->
+  <!-- ══ SCREEN 2: SOM ══ -->
+  <div class="screen">
+    <div class="screen-header"><div class="screen-title">Alerta sonoro</div></div>
+    <div class="sound-content">
+      <div>
+        <div class="sg-title">Tipo de som</div>
+        <div class="sound-grid" style="margin-top:8px">
+          <div class="s-opt on" onclick="selectSound('cronometro')" id="snd-cronometro">
+            <div class="s-icon"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" width="22" height="22"><circle cx="11" cy="12" r="8" stroke-width="1.5"/><path d="M11 8v4l2.5 2.5" stroke-width="1.5" stroke-linecap="round"/><path d="M8.5 1.5h5M11 1.5V4" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+            <div class="s-name">Cronómetro</div>
+            <div class="s-sub">Bip-bip duplo acelerado</div>
+          </div>
+          <div class="s-opt" onclick="selectSound('sonar')" id="snd-sonar">
+            <div class="s-icon"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" width="22" height="22"><circle cx="11" cy="11" r="3" stroke-width="1.5"/><circle cx="11" cy="11" r="6.5" stroke-width="1.5" opacity=".5"/><circle cx="11" cy="11" r="10" stroke-width="1.5" opacity=".25"/></svg></div>
+            <div class="s-name">Sonar</div>
+            <div class="s-sub">Ping descendente</div>
+          </div>
+          <div class="s-opt" onclick="selectSound('alerta')" id="snd-alerta">
+            <div class="s-icon"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" width="22" height="22"><path d="M11 2l9 17H2L11 2z" stroke-width="1.5" stroke-linejoin="round"/><path d="M11 9v4M11 15.5v1" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+            <div class="s-name">Alerta</div>
+            <div class="s-sub">Tom urgente crescente</div>
+          </div>
+          <div class="s-opt" onclick="selectSound('discreto')" id="snd-discreto">
+            <div class="s-icon"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" width="22" height="22"><path d="M4 8v6l3 3h3V5H7L4 8z" stroke-width="1.5" stroke-linejoin="round"/><path d="M15 7a5 5 0 010 8" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+            <div class="s-name">Discreto</div>
+            <div class="s-sub">Clique suave</div>
+          </div>
+          <div class="s-opt" onclick="selectSound('digital')" id="snd-digital">
+            <div class="s-icon"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" width="22" height="22"><rect x="3" y="6" width="16" height="10" rx="2" stroke-width="1.5"/><path d="M7 11h1.5M10 9v4M12 9v4M13.5 11H15" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+            <div class="s-name">Digital</div>
+            <div class="s-sub">Bip eletrónico retro</div>
+          </div>
+          <div class="s-opt" onclick="selectSound('silencio')" id="snd-silencio">
+            <div class="s-icon"><svg viewBox="0 0 22 22" fill="none" stroke="currentColor" width="22" height="22"><path d="M4 8v6l3 3h3V5H7L4 8z" stroke-width="1.5" stroke-linejoin="round"/><line x1="14" y1="8" x2="20" y2="14" stroke-width="1.5" stroke-linecap="round"/><line x1="20" y1="8" x2="14" y2="14" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+            <div class="s-name">Silêncio</div>
+            <div class="s-sub">Só vibração</div>
+          </div>
+        </div>
+      </div>
+      <div class="vol-row">
+        <div class="vol-top">
+          <span class="vol-label">Volume</span>
+          <span class="vol-val" id="volVal">80%</span>
+        </div>
+        <input type="range" min="0" max="100" value="80" step="5" id="volSlider" oninput="updateVolume(this.value)" style="accent-color:var(--red);width:100%">
+      </div>
+      <button class="test-btn" onclick="testCurrentSound()">&#9654; Testar som</button>
+    </div>
+  </div>
+
+  <!-- ══ SCREEN 3: DEFINIÇÕES ══ -->
+  <div class="screen">
+    <div class="screen-header"><div class="screen-title">Definições</div></div>
+    <div class="settings-content">
+      <!-- Vibration -->
+      <div class="s-row">
+        <div>
+          <div class="s-row-label">Vibração</div>
+          <div class="s-row-sub">Pulso haptico no telemóvel</div>
+        </div>
+        <button class="toggle on" id="toggleVibrate" onclick="toggleSetting('vibrate')"></button>
+      </div>
+      <!-- Alert distance -->
+      <div class="s-row col">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="s-row-label">Distância de alerta</div>
+            <div class="s-row-sub">Início dos bips</div>
+          </div>
+          <span style="font-family:var(--mono);font-size:13px;color:var(--muted)" id="alertDistVal">500m</span>
+        </div>
+        <input type="range" min="200" max="2000" value="500" step="100" id="alertDistSlider" oninput="updateAlertDist(this.value)" style="accent-color:var(--red);width:100%">
+      </div>
+      <!-- Simulator -->
+      <button class="sim-btn" onclick="runSimulation()">&#9654; Simular aproximação ao radar</button>
+      <!-- GPS permission -->
+      <div class="s-row col">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="s-row-label">GPS</div>
+            <div class="s-row-sub">Localização em tempo real</div>
+          </div>
+          <button class="toggle" id="toggleGpsPermission" onclick="toggleGPS()"></button>
+        </div>
+        <div class="perm-tag" id="gpsPermStatus">Não ativo</div>
+      </div>
+      <!-- Notifications -->
+      <div class="s-row col">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="s-row-label">Notificações</div>
+            <div class="s-row-sub">Alertas com ecrã bloqueado</div>
+          </div>
+          <button class="toggle" id="toggleNotif" onclick="requestNotifications()"></button>
+        </div>
+        <div class="perm-tag" id="notifPermStatus">Não solicitada</div>
+      </div>
+      <!-- About -->
+      <div class="about-card">
+        <div class="about-title">BIP v2.0</div>
+        <div class="about-sub">
+          123 radares SINCRO — Portugal<br>
+          Fonte: ANSR / radaresavista.pt (ago. 2025)<br>
+          Alerta inteligente por sentido de trânsito.<br>
+          Use sempre com responsabilidade.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /screen-host -->
+
+<!-- MAP OVERLAY (fora do screen-host, sempre no topo do DOM) -->
 <div class="map-overlay" id="mapOverlay">
-  <div class="map-blur-bg" onclick="closeMap()"></div>
-  <div class="map-expanded">
+  <div class="map-backdrop" onclick="closeMap()"></div>
+  <div class="map-sheet">
     <div id="mapExpanded"></div>
-    <div class="map-close-btn" onclick="closeMap()">&#x2715;</div>
+    <div class="map-sheet-close" onclick="closeMap()">&#x2715;</div>
   </div>
 </div>
 
 <!-- BOTTOM NAV -->
 <div class="bottom-nav">
-  <button class="nav-btn active" id="navMain" onclick="showPanel('main')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="11" stroke-opacity=".4"/></svg>Radar
+  <button class="nav-btn on" id="nb0" onclick="goScreen(0)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="11" opacity=".35"/></svg>
+    <span>Radar</span>
   </button>
-  <button class="nav-btn" id="navList" onclick="showPanel('listPanel')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Lista
+  <button class="nav-btn" id="nb1" onclick="goScreen(1)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+    <span>Lista</span>
   </button>
-  <button class="nav-btn" id="navSound" onclick="showPanel('soundPanel')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>Som
+  <button class="nav-btn" id="nb2" onclick="goScreen(2)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>
+    <span>Som</span>
   </button>
-  <button class="nav-btn" id="navSettings" onclick="showPanel('settingsPanel')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>Defs
+  <button class="nav-btn" id="nb3" onclick="goScreen(3)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    <span>Defs</span>
   </button>
-</div>
-
-<!-- LIST PANEL -->
-<div class="panel" id="listPanel">
-  <div class="panel-header">
-    <div class="panel-title">Lista de Radares</div>
-    <button class="close-btn" onclick="showPanel('main')">&#x2715;</button>
-  </div>
-  <div class="panel-body" style="padding:10px">
-    <div class="radar-list" id="radarListFull" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:5px"></div>
-  </div>
-</div>
-
-<!-- SOUND PANEL -->
-<div class="panel" id="soundPanel">
-  <div class="panel-header">
-    <div class="panel-title">Tipo de som</div>
-    <button class="close-btn" onclick="showPanel('main')">&#x2715;</button>
-  </div>
-  <div class="panel-body">
-    <div class="setting-group">
-      <div class="setting-group-title">Escolhe o teu alerta</div>
-      <div class="sound-grid">
-        <div class="sound-opt selected" onclick="selectSound('cronometro')" id="snd-cronometro">
-          <div class="sound-opt-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="12" r="8" stroke="currentColor" stroke-width="1.6"/><path d="M11 8v4l2.5 2.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M8.5 1.5h5M11 1.5V4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div>
-          <div class="sound-opt-name">Cronómetro</div>
-          <div class="sound-opt-sub">Bip-bip duplo acelerado</div>
-        </div>
-        <div class="sound-opt" onclick="selectSound('sonar')" id="snd-sonar">
-          <div class="sound-opt-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="3" fill="currentColor" opacity=".6"/><circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="1.4" opacity=".5"/><circle cx="11" cy="11" r="9.5" stroke="currentColor" stroke-width="1.4" opacity=".25"/></svg></div>
-          <div class="sound-opt-name">Sonar</div>
-          <div class="sound-opt-sub">Ping descendente suave</div>
-        </div>
-        <div class="sound-opt" onclick="selectSound('alerta')" id="snd-alerta">
-          <div class="sound-opt-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 2l9 17H2L11 2z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M11 9v4M11 15.5v1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div>
-          <div class="sound-opt-name">Alerta</div>
-          <div class="sound-opt-sub">Tom urgente crescente</div>
-        </div>
-        <div class="sound-opt" onclick="selectSound('discreto')" id="snd-discreto">
-          <div class="sound-opt-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4 8v6l3 3h3V5H7L4 8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M15 7a5 5 0 010 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
-          <div class="sound-opt-name">Discreto</div>
-          <div class="sound-opt-sub">Clique suave e curto</div>
-        </div>
-        <div class="sound-opt" onclick="selectSound('digital')" id="snd-digital">
-          <div class="sound-opt-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="6" width="16" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 11h1.5M10 9v4M12 9v4M13.5 11H15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
-          <div class="sound-opt-name">Digital</div>
-          <div class="sound-opt-sub">Bip eletrónico retro</div>
-        </div>
-        <div class="sound-opt" onclick="selectSound('silencio')" id="snd-silencio">
-          <div class="sound-opt-icon"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M4 8v6l3 3h3V5H7L4 8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><line x1="14" y1="8" x2="20" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="20" y1="8" x2="14" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
-          <div class="sound-opt-name">Silêncio</div>
-          <div class="sound-opt-sub">Só vibração</div>
-        </div>
-      </div>
-    </div>
-    <div class="setting-group">
-      <div class="setting-group-title">Volume</div>
-      <div class="setting-row" style="flex-direction:column;align-items:stretch;gap:10px">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div class="setting-label">Volume do alerta</div>
-          <span style="font-family:var(--mono);font-size:13px" id="volVal">80%</span>
-        </div>
-        <input type="range" min="0" max="100" value="80" step="5" id="volSlider" oninput="updateVolume(this.value)" style="accent-color:var(--red);width:100%">
-      </div>
-    </div>
-    <div class="setting-group">
-      <div class="setting-group-title">Testar</div>
-      <button class="sim-btn" onclick="testCurrentSound()">&#9654; Testar som selecionado</button>
-    </div>
-  </div>
-</div>
-
-<!-- SETTINGS PANEL -->
-<div class="panel" id="settingsPanel">
-  <div class="panel-header">
-    <div class="panel-title">Definições</div>
-    <button class="close-btn" onclick="showPanel('main')">&#x2715;</button>
-  </div>
-  <div class="panel-body">
-    <div class="setting-group">
-      <div class="setting-group-title">Alertas</div>
-      <div class="setting-row">
-        <div><div class="setting-label">Vibração</div><div class="setting-sub">Pulso haptico</div></div>
-        <button class="toggle on" id="toggleVibrate" onclick="toggleSetting('vibrate')"></button>
-      </div>
-      <div class="setting-row" style="flex-direction:column;align-items:stretch;gap:10px">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div><div class="setting-label">Distância de alerta</div><div class="setting-sub">Início dos bips</div></div>
-          <span style="font-family:var(--mono);font-size:13px" id="alertDistVal">500m</span>
-        </div>
-        <input type="range" min="200" max="2000" value="500" step="100" id="alertDistSlider" oninput="updateAlertDist(this.value)" style="accent-color:var(--red);width:100%">
-      </div>
-    </div>
-    <div class="setting-group">
-      <div class="setting-group-title">Simulador</div>
-      <button class="sim-btn" onclick="runSimulation()">&#9654; Simular aproximação ao radar</button>
-    </div>
-    <div class="setting-group">
-      <div class="setting-group-title">Permissões</div>
-      <div class="setting-row" style="flex-direction:column;align-items:stretch;gap:8px">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div><div class="setting-label">GPS</div><div class="setting-sub">Localização em tempo real</div></div>
-          <button class="toggle" id="toggleGpsPermission" onclick="toggleGPS()"></button>
-        </div>
-        <div class="perm-status" id="gpsPermStatus">Não ativo</div>
-      </div>
-      <div class="setting-row" style="flex-direction:column;align-items:stretch;gap:8px">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div><div class="setting-label">Notificações</div><div class="setting-sub">Alertas com ecrã bloqueado</div></div>
-          <button class="toggle" id="toggleNotif" onclick="requestNotifications()"></button>
-        </div>
-        <div class="perm-status" id="notifPermStatus">Não solicitada</div>
-      </div>
-    </div>
-    <div class="setting-group">
-      <div class="setting-group-title">Instalar app</div>
-      <div class="install-banner">
-        <div class="install-title">Instalar no telemóvel</div>
-        <div class="install-sub">Funciona offline e em segundo plano</div>
-        <button class="install-btn" onclick="installApp()">Instalar BIP</button>
-      </div>
-      <div class="perm-status" style="font-size:11px;line-height:1.7">
-        iPhone: Safari &#8594; Partilhar &#8594; "Adicionar ao ecr&#227; principal"<br>
-        Android: Chrome &#8594; Menu &#8942; &#8594; "Adicionar ao ecr&#227; principal"
-      </div>
-    </div>
-    <div class="setting-group">
-      <div class="setting-group-title">Sobre</div>
-      <div class="setting-row" style="flex-direction:column;align-items:stretch;gap:4px">
-        <div class="setting-label">BIP v2.0</div>
-        <div class="setting-sub" style="line-height:1.7">123 radares SINCRO oficiais &#8212; Portugal<br>Fonte: ANSR / radaresavista.pt (ago. 2025)<br>Alerta por sentido de trânsito.<br>Use sempre com responsabilidade.</div>
-      </div>
-    </div>
-  </div>
 </div>
 
 <script src="radares.js"></script>
 <script>
-// ═══════════════════════════════════════════
-// STATE
-// ═══════════════════════════════════════════
+// ═══ STATE ═══
 let gpsActive=false,watchId=null,audioCtx=null;
-let settings={vibrate:true,volume:0.8,alertDist:500,soundMode:'cronometro'};
-let bipInterval=null,currentBipRate=0,lastNearestDist=Infinity;
-let simRunning=false,deferredPrompt=null;
-let userLat=null,userLng=null,userHeading=null;
-let mapThumb=null,mapExpanded=null,userMarkerThumb=null,userMarkerExp=null;
+let cfg={vibrate:true,volume:.8,alertDist:500,sound:'cronometro'};
+let bipIv=null,bipRate=0,lastNearDist=Infinity;
+let simRunning=false;
+let uLat=null,uLng=null,uHead=null;
+let mapT=null,mapE=null,mrkT=null,mrkE=null;
+let mapInited=false;
 
-// ═══════════════════════════════════════════
-// DIRECTION FILTERING
-// Só alerta se o utilizador vai ao encontro do radar
-// Tolerância de ±70° em relação ao bearing do radar
-// ═══════════════════════════════════════════
-function bearingBetween(la1,ln1,la2,ln2){
-  const toR=d=>d*Math.PI/180;
-  const dL=toR(ln2-ln1);
-  const y=Math.sin(dL)*Math.cos(toR(la2));
-  const x=Math.cos(toR(la1))*Math.sin(toR(la2))-Math.sin(toR(la1))*Math.cos(toR(la2))*Math.cos(dL);
-  return (Math.atan2(y,x)*180/Math.PI+360)%360;
+// ═══ NAVIGATION ═══
+function goScreen(n){
+  document.getElementById('screenHost').dataset.active=n;
+  [0,1,2,3].forEach(i=>{
+    document.getElementById('nb'+i).classList.toggle('on',i===n);
+  });
 }
 
-function angleDiff(a,b){
-  let d=Math.abs(a-b)%360;
-  return d>180?360-d:d;
+// ═══ DIRECTION LOGIC ═══
+function bearing(la1,ln1,la2,ln2){
+  const r=d=>d*Math.PI/180,dL=r(ln2-ln1);
+  const y=Math.sin(dL)*Math.cos(r(la2));
+  const x=Math.cos(r(la1))*Math.sin(r(la2))-Math.sin(r(la1))*Math.cos(r(la2))*Math.cos(dL);
+  return(Math.atan2(y,x)*180/Math.PI+360)%360;
 }
-
-function radarIsRelevant(r,userLat,userLng,heading){
-  // Se ambos sentidos, sempre relevante
+function angDiff(a,b){let d=Math.abs(a-b)%360;return d>180?360-d:d;}
+function isRelevant(r){
   if(r.ambos)return true;
-  // Se não temos heading, aceita tudo (GPS parado / início)
-  if(heading===null||heading===undefined)return true;
-  // Bearing do utilizador para o radar
-  const bearToRadar=bearingBetween(userLat,userLng,r.lat,r.lng);
-  // O radar aponta contra o tráfego — o utilizador deve estar a vir da direção oposta ao bearing do radar
-  // Ex: radar bearing=180 (radar "vê" para Sul = fiscaliza quem vai para Sul)
-  // Utilizador a ir para Sul: heading ≈ 180 ✓
-  const diff=angleDiff(heading,r.bearing);
-  return diff<=70; // 70° de tolerância de cada lado
+  if(uHead===null)return true;
+  return angDiff(uHead,r.bearing)<=70;
 }
 
-// ═══════════════════════════════════════════
-// MAP — Thumbnail + Expanded
-// ═══════════════════════════════════════════
+// ═══ MAP ═══
 function initMaps(){
-  if(mapThumb)return;
-  const radarIcon=L.divIcon({
-    className:'',
-    html:'<div style="width:8px;height:8px;background:#ff3b30;border-radius:50%;border:1.5px solid rgba(255,255,255,.6)"></div>',
-    iconSize:[8,8],iconAnchor:[4,4]
-  });
-  // THUMBNAIL MAP
-  mapThumb=L.map('mapThumb',{zoomControl:false,attributionControl:false,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,touchZoom:false,keyboard:false}).setView([39.5,-8.0],6);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:18}).addTo(mapThumb);
-  RADARS.forEach(r=>L.marker([r.lat,r.lng],{icon:radarIcon}).addTo(mapThumb));
-  // EXPANDED MAP
-  mapExpanded=L.map('mapExpanded',{zoomControl:true,attributionControl:false}).setView([39.5,-8.0],6);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:18}).addTo(mapExpanded);
-  RADARS.forEach(r=>{
-    L.marker([r.lat,r.lng],{icon:radarIcon}).addTo(mapExpanded)
-     .bindPopup('<b style="color:#111">'+r.limit+' km/h</b><br><span style="color:#555;font-size:11px">'+r.name.replace(/&#8212;/g,'—').replace(/&#8594;/g,'→')+'</span>');
-  });
+  if(mapInited)return;
+  mapInited=true;
+  const icon=L.divIcon({className:'',
+    html:'<div style="width:7px;height:7px;background:#ff3b30;border-radius:50%;border:1.5px solid rgba(255,255,255,.55)"></div>',
+    iconSize:[7,7],iconAnchor:[3.5,3.5]});
+  const tile='https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+  mapT=L.map('mapThumb',{zoomControl:false,attributionControl:false,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,touchZoom:false,keyboard:false}).setView([39.5,-8],6);
+  L.tileLayer(tile,{maxZoom:18}).addTo(mapT);
+  RADARS.forEach(r=>L.marker([r.lat,r.lng],{icon}).addTo(mapT));
+  mapE=L.map('mapExpanded',{zoomControl:true,attributionControl:false}).setView([39.5,-8],6);
+  L.tileLayer(tile,{maxZoom:18}).addTo(mapE);
+  RADARS.forEach(r=>L.marker([r.lat,r.lng],{icon}).addTo(mapE)
+    .bindPopup('<b style="color:#111">'+r.limit+' km/h</b><br><small style="color:#555">'+r.name.replace(/&#8212;/g,'—').replace(/&#8594;/g,'→')+'</small>'));
 }
-
-function updateMapPosition(lat,lng){
-  if(!mapThumb)return;
-  // user dot
-  const pos=[lat,lng];
-  if(!userMarkerThumb){
-    userMarkerThumb=L.circleMarker(pos,{radius:5,color:'#30d158',fillColor:'#30d158',fillOpacity:1,weight:2}).addTo(mapThumb);
-    userMarkerExp=L.circleMarker(pos,{radius:7,color:'#30d158',fillColor:'#30d158',fillOpacity:1,weight:2}).addTo(mapExpanded);
-  } else {
-    userMarkerThumb.setLatLng(pos);
-    userMarkerExp.setLatLng(pos);
-  }
-  mapThumb.panTo(pos,{animate:false});
+function updMap(lat,lng){
+  if(!mapInited)return;
+  const p=[lat,lng];
+  if(!mrkT){
+    mrkT=L.circleMarker(p,{radius:5,color:'#34c759',fillColor:'#34c759',fillOpacity:1,weight:2}).addTo(mapT);
+    mrkE=L.circleMarker(p,{radius:7,color:'#34c759',fillColor:'#34c759',fillOpacity:1,weight:2}).addTo(mapE);
+  } else { mrkT.setLatLng(p); mrkE.setLatLng(p); }
+  mapT.panTo(p,{animate:false});
 }
-
 function openMap(){
   initMaps();
   document.getElementById('mapOverlay').classList.add('open');
-  setTimeout(()=>{mapExpanded.invalidateSize();if(userLat)mapExpanded.setView([userLat,userLng],13);},350);
+  setTimeout(()=>{
+    mapE.invalidateSize();
+    if(uLat) mapE.setView([uLat,uLng],14);
+  },360);
 }
-function closeMap(){document.getElementById('mapOverlay').classList.remove('open');}
+function closeMap(){ document.getElementById('mapOverlay').classList.remove('open'); }
 
-// ═══════════════════════════════════════════
-// AUDIO
-// ═══════════════════════════════════════════
-function getAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx}
-function playTone(freq,dur,type,vol){
-  const ctx=getAudio();if(ctx.state==='suspended')ctx.resume();
-  const osc=ctx.createOscillator(),gain=ctx.createGain();
-  osc.connect(gain);gain.connect(ctx.destination);
-  osc.frequency.value=freq;osc.type=type||'sine';
-  gain.gain.setValueAtTime(0,ctx.currentTime);
-  gain.gain.linearRampToValueAtTime((vol||0.5)*settings.volume,ctx.currentTime+0.005);
-  gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
-  osc.start(ctx.currentTime);osc.stop(ctx.currentTime+dur+0.02);
+// ═══ AUDIO ═══
+function getCtx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
+function tone(f,d,type,vol){
+  const c=getCtx();if(c.state==='suspended')c.resume();
+  const o=c.createOscillator(),g=c.createGain();
+  o.connect(g);g.connect(c.destination);
+  o.frequency.value=f;o.type=type||'sine';
+  g.gain.setValueAtTime(0,c.currentTime);
+  g.gain.linearRampToValueAtTime((vol||.5)*cfg.volume,c.currentTime+.005);
+  g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);
+  o.start(c.currentTime);o.stop(c.currentTime+d+.02);
 }
 function playSound(mode,ratio){
   if(mode==='silencio')return;
-  if(mode==='cronometro'){playTone(880,0.055,'sine',0.5);setTimeout(()=>playTone(880,0.055,'sine',0.5),85);}
+  if(mode==='cronometro'){tone(880,.055,'sine',.5);setTimeout(()=>tone(880,.055,'sine',.5),85);}
   else if(mode==='sonar'){
-    const ctx=getAudio();if(ctx.state==='suspended')ctx.resume();
-    const osc=ctx.createOscillator(),gain=ctx.createGain();
-    osc.connect(gain);gain.connect(ctx.destination);osc.type='sine';
-    osc.frequency.setValueAtTime(1100,ctx.currentTime);osc.frequency.exponentialRampToValueAtTime(280,ctx.currentTime+0.35);
-    gain.gain.setValueAtTime(settings.volume*0.55,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.35);
-    osc.start(ctx.currentTime);osc.stop(ctx.currentTime+0.4);
+    const c=getCtx();if(c.state==='suspended')c.resume();
+    const o=c.createOscillator(),g=c.createGain();
+    o.connect(g);g.connect(c.destination);o.type='sine';
+    o.frequency.setValueAtTime(1100,c.currentTime);
+    o.frequency.exponentialRampToValueAtTime(280,c.currentTime+.35);
+    g.gain.setValueAtTime(cfg.volume*.55,c.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.35);
+    o.start(c.currentTime);o.stop(c.currentTime+.4);
   } else if(mode==='alerta'){
-    const ctx=getAudio();if(ctx.state==='suspended')ctx.resume();
-    const osc=ctx.createOscillator(),gain=ctx.createGain();
-    osc.connect(gain);gain.connect(ctx.destination);osc.type='sawtooth';
-    osc.frequency.setValueAtTime(380+ratio*280,ctx.currentTime);osc.frequency.linearRampToValueAtTime(580+ratio*380,ctx.currentTime+0.13);
-    gain.gain.setValueAtTime(settings.volume*0.28,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.18);
-    osc.start(ctx.currentTime);osc.stop(ctx.currentTime+0.2);
-  } else if(mode==='discreto'){playTone(1100,0.03,'sine',0.22);setTimeout(()=>playTone(850,0.03,'sine',0.18),55);}
-  else if(mode==='digital'){playTone(440+ratio*500,0.07,'square',0.18);}
+    const c=getCtx();if(c.state==='suspended')c.resume();
+    const o=c.createOscillator(),g=c.createGain();
+    o.connect(g);g.connect(c.destination);o.type='sawtooth';
+    o.frequency.setValueAtTime(380+ratio*280,c.currentTime);
+    o.frequency.linearRampToValueAtTime(580+ratio*380,c.currentTime+.13);
+    g.gain.setValueAtTime(cfg.volume*.28,c.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.18);
+    o.start(c.currentTime);o.stop(c.currentTime+.2);
+  } else if(mode==='discreto'){tone(1100,.03,'sine',.22);setTimeout(()=>tone(850,.03,'sine',.18),55);}
+  else if(mode==='digital'){tone(440+ratio*500,.07,'square',.18);}
 }
 function doAlert(ratio){
-  playSound(settings.soundMode,ratio);
-  if(settings.vibrate&&navigator.vibrate)navigator.vibrate(ratio>0.8?[60,30,60]:[30,20,20]);
+  playSound(cfg.sound,ratio);
+  if(cfg.vibrate&&navigator.vibrate)navigator.vibrate(ratio>.8?[60,30,60]:[30,20,20]);
 }
 function setBipRate(dist){
-  const AD=settings.alertDist,MIN=50;
+  const AD=cfg.alertDist,MIN=50;
   if(dist>=AD){stopBips();return;}
   const ratio=Math.max(0,Math.min(1,(AD-dist)/(AD-MIN)));
-  const interval=400+Math.pow(1-ratio,2)*2100;
-  if(Math.abs(interval-currentBipRate)>50||currentBipRate===0){
-    currentBipRate=interval;stopBips();doAlert(ratio);
-    bipInterval=setInterval(()=>doAlert(ratio),interval);
+  const iv=400+Math.pow(1-ratio,2)*2100;
+  if(Math.abs(iv-bipRate)>50||bipRate===0){
+    bipRate=iv;stopBips();doAlert(ratio);
+    bipIv=setInterval(()=>doAlert(ratio),iv);
   }
 }
-function stopBips(){if(bipInterval){clearInterval(bipInterval);bipInterval=null;}currentBipRate=0;}
+function stopBips(){if(bipIv){clearInterval(bipIv);bipIv=null;}bipRate=0;}
 
-// ═══════════════════════════════════════════
-// DISTANCE
-// ═══════════════════════════════════════════
-function haversine(la1,ln1,la2,ln2){
+// ═══ DISTANCE ═══
+function hav(la1,ln1,la2,ln2){
   const R=6371000,dLa=(la2-la1)*Math.PI/180,dLn=(ln2-ln1)*Math.PI/180;
   const a=Math.sin(dLa/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dLn/2)**2;
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 
-// ═══════════════════════════════════════════
-// UI UPDATE
-// ═══════════════════════════════════════════
-function updateUI(distances,speed){
-  // Filter by direction — só radares relevantes para o sentido do utilizador
-  const relevant=distances.filter(r=>radarIsRelevant(r,userLat,userLng,userHeading));
-  const sorted=[...relevant].sort((a,b)=>a.dist-b.dist);
-  // Full list (todos) para a lista visual
-  const allSorted=[...distances].sort((a,b)=>a.dist-b.dist);
-  const nearest=sorted[0];
-  const AD=settings.alertDist;
-  document.getElementById('speedVal').textContent=Math.round(speed);
-  const display=document.getElementById('radarDisplay');
-  const banner=document.getElementById('alertBanner');
-  if(nearest){
-    const d=nearest.dist;
-    document.getElementById('distNumber').textContent=d<1000?Math.round(d):(d/1000).toFixed(1);
-    document.getElementById('distUnit').textContent=d<1000?'metros':'km';
-    document.getElementById('radarNameDisplay').textContent=nearest.name.replace(/&#8212;/g,'—').replace(/&#8594;/g,'→');
-    const ratio=d<AD?Math.max(0,1-(d-80)/(AD-80)):0;
-    updateBipBars(ratio);
-    if(d<300){
-      display.className='radar-display alert';setBipRate(d);banner.classList.add('show');
-      document.getElementById('alertName').textContent=nearest.name.replace(/&#8212;/g,'—').replace(/&#8594;/g,'→').substring(0,40);
-      document.getElementById('alertSub').textContent='Limite: '+nearest.limit+' km/h  ·  '+Math.round(d)+'m';
-    } else if(d<AD){
-      display.className='radar-display warn';setBipRate(d);banner.classList.add('show');
-      document.getElementById('alertName').textContent=nearest.name.replace(/&#8212;/g,'—').replace(/&#8594;/g,'→').substring(0,40);
-      document.getElementById('alertSub').textContent='Limite: '+nearest.limit+' km/h  ·  '+Math.round(d)+'m';
-    } else {
-      display.className='radar-display';stopBips();banner.classList.remove('show');
-    }
-    if(d<500&&lastNearestDist>=500)sendNotification(nearest.name,Math.round(d));
-    lastNearestDist=d;
-    if('mediaSession' in navigator)navigator.mediaSession.metadata=new MediaMetadata({
-      title:d<1000?Math.round(d)+' metros':(d/1000).toFixed(1)+' km',
-      artist:nearest.name.replace(/&#8212;/g,'-').replace(/&#8594;/g,'>'),album:'BIP'
-    });
-  } else {
-    display.className='radar-display';
-    document.getElementById('distNumber').textContent='—';
-    document.getElementById('distUnit').textContent='aguarda GPS';
-    document.getElementById('radarNameDisplay').textContent='nenhum radar neste sentido';
-    stopBips();banner.classList.remove('show');updateBipBars(0);lastNearestDist=Infinity;
-  }
-  renderList(allSorted);
-}
-function updateBipBars(ratio){
-  const bars=document.querySelectorAll('.bip-bar');
-  const h=[6,9,13,17,21];
-  bars.forEach((b,i)=>{
-    b.style.background=ratio>i/bars.length?(ratio>0.7?'var(--red)':'var(--amber)'):'var(--muted2)';
-    b.style.height=h[i]+'px';
-  });
-}
-function renderList(sorted,targetId){
-  const ids=targetId?[targetId]:['radarList','radarListFull'];
-  const AD=settings.alertDist;
-  const html=sorted.map(r=>{
-    // Destaca só se relevante para o sentido atual
-    const rel=radarIsRelevant(r,userLat,userLng,userHeading);
-    const cls=rel&&r.dist!==undefined?(r.dist<300?'alert':r.dist<AD?'warn':''):'';
-    const d=r.dist!==undefined?(r.dist<1000?Math.round(r.dist)+'m':(r.dist/1000).toFixed(1)+'km'):'—';
-    const badge=r.type==='VM'?'<span style="font-size:9px;padding:1px 4px;border-radius:4px;background:rgba(255,159,10,.2);color:var(--amber);margin-left:3px;font-family:var(--mono)">VM</span>':'';
-    const dimStyle=!rel&&userHeading!==null?'opacity:.4':'';
-    const nm=r.name.replace(/&#8212;/g,'—').replace(/&#8594;/g,'→');
-    return '<div class="r-item '+cls+'" style="'+dimStyle+'"><div class="r-status"></div><div class="r-info"><div class="r-name">'+nm+badge+'</div><div class="r-road">'+r.road+'</div></div><div class="r-right"><div class="r-dist">'+d+'</div><div class="r-limit">'+r.limit+' km/h</div></div></div>';
-  }).join('');
-  ids.forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=html;});
+// ═══ HEADING LABEL ═══
+function headLabel(h){
+  if(h===null)return '—';
+  const dirs=['N','NE','E','SE','S','SO','O','NO','N'];
+  return dirs[Math.round(h/45)];
 }
 
-// ═══════════════════════════════════════════
-// GPS
-// ═══════════════════════════════════════════
+// ═══ UI UPDATE ═══
+function updateUI(distances,speed){
+  const rel=distances.filter(r=>isRelevant(r)).sort((a,b)=>a.dist-b.dist);
+  const all=distances.slice().sort((a,b)=>a.dist-b.dist);
+  const near=rel[0];
+  const AD=cfg.alertDist;
+
+  // Speed
+  document.getElementById('speedVal').textContent=Math.round(speed);
+
+  // Direction arrow
+  if(uHead!==null){
+    document.getElementById('dirArrow').style.transform='rotate('+uHead+'deg)';
+    document.getElementById('dirLabel').textContent=headLabel(uHead);
+  }
+
+  // Radar card
+  const rc=document.getElementById('radarCard');
+  const nc=document.getElementById('nearestCard');
+  if(near){
+    const d=near.dist;
+    document.getElementById('distVal').textContent=d<1000?Math.round(d):(d/1000).toFixed(1);
+    document.getElementById('distU').textContent=d<1000?'metros':'km';
+    const nm=near.name.replace(/&#8212;/g,'—').replace(/&#8594;/g,'→');
+    document.getElementById('ncName').textContent=nm;
+    document.getElementById('ncDist').textContent=d<1000?Math.round(d)+'m':(d/1000).toFixed(1)+'km';
+    document.getElementById('ncLimit').textContent=near.limit+' km/h';
+    const nt=document.getElementById('ncType');
+    if(near.type==='VM'){nt.style.display='';nt.textContent='VM';nt.className='nc-badge vm';}
+    else nt.style.display='none';
+
+    if(d<300){
+      rc.className='radar-card alert';nc.className='nearest-card alert';
+      setBipRate(d);
+    } else if(d<AD){
+      rc.className='radar-card warn';nc.className='nearest-card warn';
+      setBipRate(d);
+    } else {
+      rc.className='radar-card';nc.className='nearest-card';
+      stopBips();
+    }
+    if(d<500&&lastNearDist>=500)sendNotif(nm,Math.round(d));
+    lastNearDist=d;
+    if('mediaSession' in navigator)navigator.mediaSession.metadata=new MediaMetadata({
+      title:(d<1000?Math.round(d)+'m':(d/1000).toFixed(1)+'km'),
+      artist:nm.substring(0,50),album:'BIP'
+    });
+  } else {
+    rc.className='radar-card';nc.className='nearest-card';
+    document.getElementById('distVal').textContent='—';
+    document.getElementById('distU').textContent='aguarda GPS';
+    document.getElementById('ncName').textContent='Nenhum radar neste sentido';
+    document.getElementById('ncDist').textContent='—';
+    document.getElementById('ncLimit').textContent='— km/h';
+    document.getElementById('ncType').style.display='none';
+    stopBips();lastNearDist=Infinity;
+  }
+  renderList(all);
+}
+
+function renderList(arr){
+  const AD=cfg.alertDist;
+  const el=document.getElementById('radarList');
+  el.innerHTML=arr.map(r=>{
+    const rel=isRelevant(r);
+    const d=r.dist!==undefined?(r.dist<1000?Math.round(r.dist)+'m':(r.dist/1000).toFixed(1)+'km'):'—';
+    let cls='r-item';
+    if(rel&&r.dist!==undefined){if(r.dist<300)cls+=' alert';else if(r.dist<AD)cls+=' warn';}
+    if(!rel&&uHead!==null)cls+=' dimmed';
+    const nm=r.name.replace(/&#8212;/g,'—').replace(/&#8594;/g,'→');
+    const vm=r.type==='VM'?'<span style="font-size:9px;padding:1px 5px;border-radius:99px;background:rgba(255,149,0,.15);color:var(--amber);margin-left:4px;font-family:var(--mono)">VM</span>':'';
+    return '<div class="'+cls+'"><div class="r-dot"></div><div class="r-info"><div class="r-name">'+nm+vm+'</div><div class="r-road">'+r.road+'</div></div><div class="r-right"><div class="r-dist">'+d+'</div><div class="r-lim">'+r.limit+' km/h</div></div></div>';
+  }).join('');
+}
+
+// ═══ GPS ═══
 function toggleGPS(){
   if(!gpsActive){
     if(!navigator.geolocation){alert('GPS não disponível.');return;}
     initMaps();
     watchId=navigator.geolocation.watchPosition(pos=>{
-      userLat=pos.coords.latitude;
-      userLng=pos.coords.longitude;
-      const speed=(pos.coords.speed||0)*3.6;
-      // Heading: usa o do GPS se disponível e velocidade>3km/h; senão mantém anterior
-      if(pos.coords.heading!==null&&pos.coords.heading!==undefined&&speed>3){
-        userHeading=pos.coords.heading;
-      }
-      const distances=RADARS.map(r=>({...r,dist:haversine(userLat,userLng,r.lat,r.lng)}));
-      updateUI(distances,speed);
-      updateMapPosition(userLat,userLng);
-      document.getElementById('gpsPermStatus').textContent='Ativo · '+userLat.toFixed(5)+', '+userLng.toFixed(5);
+      uLat=pos.coords.latitude;uLng=pos.coords.longitude;
+      const spd=(pos.coords.speed||0)*3.6;
+      if(pos.coords.heading!==null&&pos.coords.heading!==undefined&&spd>3)uHead=pos.coords.heading;
+      const dists=RADARS.map(r=>({...r,dist:hav(uLat,uLng,r.lat,r.lng)}));
+      updateUI(dists,spd);
+      updMap(uLat,uLng);
+      document.getElementById('gpsPermStatus').textContent='Ativo · '+uLat.toFixed(5)+', '+uLng.toFixed(5);
       document.getElementById('toggleGpsPermission').classList.add('on');
     },err=>{
       document.getElementById('gpsPermStatus').textContent='Erro: '+err.message;
@@ -679,10 +869,11 @@ function toggleGPS(){
     gpsActive=true;
     document.getElementById('gpsBtn').classList.add('on');
     document.getElementById('gpsBtnLabel').textContent='GPS on';
+    document.getElementById('toggleGpsPermission').classList.add('on');
     if('wakeLock' in navigator)navigator.wakeLock.request('screen').catch(()=>{});
   } else {
     if(watchId)navigator.geolocation.clearWatch(watchId);
-    gpsActive=false;stopBips();userHeading=null;
+    gpsActive=false;stopBips();uHead=null;
     document.getElementById('gpsBtn').classList.remove('on');
     document.getElementById('gpsBtnLabel').textContent='GPS off';
     document.getElementById('gpsPermStatus').textContent='Desativado';
@@ -691,9 +882,7 @@ function toggleGPS(){
   }
 }
 
-// ═══════════════════════════════════════════
-// NOTIFICATIONS / SETTINGS
-// ═══════════════════════════════════════════
+// ═══ NOTIFICATIONS ═══
 function requestNotifications(){
   if(!('Notification' in window)){document.getElementById('notifPermStatus').textContent='Não suportado';return;}
   Notification.requestPermission().then(p=>{
@@ -701,59 +890,39 @@ function requestNotifications(){
     if(p==='granted')document.getElementById('toggleNotif').classList.add('on');
   });
 }
-function sendNotification(name,dist){
+function sendNotif(name,dist){
   if(Notification.permission!=='granted')return;
-  new Notification('Radar próximo!',{body:name.replace(/&#8212;/g,'—')+'  —  '+dist+'m',tag:'radar',renotify:true});
+  new Notification('Radar próximo!',{body:name+'  —  '+dist+'m',tag:'radar',renotify:true});
 }
+
+// ═══ SETTINGS ═══
 function toggleSetting(key){
-  settings[key]=!settings[key];
-  document.getElementById('toggle'+key.charAt(0).toUpperCase()+key.slice(1)).classList.toggle('on',settings[key]);
+  cfg[key]=!cfg[key];
+  document.getElementById('toggle'+key.charAt(0).toUpperCase()+key.slice(1)).classList.toggle('on',cfg[key]);
 }
-function updateVolume(v){settings.volume=v/100;document.getElementById('volVal').textContent=v+'%';}
-function updateAlertDist(v){settings.alertDist=parseInt(v);document.getElementById('alertDistVal').textContent=v+'m';}
+function updateVolume(v){cfg.volume=v/100;document.getElementById('volVal').textContent=v+'%';}
+function updateAlertDist(v){cfg.alertDist=parseInt(v);document.getElementById('alertDistVal').textContent=v+'m';}
 function selectSound(mode){
-  settings.soundMode=mode;
-  document.querySelectorAll('.sound-opt').forEach(el=>el.classList.remove('selected'));
-  document.getElementById('snd-'+mode).classList.add('selected');
+  cfg.sound=mode;
+  document.querySelectorAll('.s-opt').forEach(e=>e.classList.remove('on'));
+  document.getElementById('snd-'+mode).classList.add('on');
 }
-function testCurrentSound(){
-  getAudio();let r=0;
-  const iv=setInterval(()=>{r=Math.min(1,r+0.12);doAlert(r);if(r>=1)clearInterval(iv);},280);
-}
+function testCurrentSound(){getCtx();let r=0;const iv=setInterval(()=>{r=Math.min(1,r+.12);doAlert(r);if(r>=1)clearInterval(iv);},280);}
+
+// ═══ SIMULATION ═══
 function runSimulation(){
-  if(simRunning)return;simRunning=true;showPanel('main');
-  // Simula heading Norte para testar radares S→N
-  userHeading=0;userLat=41.15;userLng=-8.58;
-  let d=settings.alertDist+300;
+  if(simRunning)return;simRunning=true;goScreen(0);
+  uHead=0;uLat=41.15;uLng=-8.58;
+  let d=cfg.alertDist+300;
   const iv=setInterval(()=>{
     d-=20;
-    if(d<-400){clearInterval(iv);simRunning=false;stopBips();userHeading=null;renderList(RADARS);return;}
-    const fakes=RADARS.map((r,i)=>({...r,dist:i===0?Math.max(0,d):3000+i*400}));
-    updateUI(fakes,90);
+    if(d<-400){clearInterval(iv);simRunning=false;stopBips();uHead=null;renderList(RADARS);return;}
+    const fk=RADARS.map((r,i)=>({...r,dist:i===0?Math.max(0,d):4000+i*300}));
+    updateUI(fk,90);
   },100);
 }
 
-// ═══════════════════════════════════════════
-// PANEL NAV
-// ═══════════════════════════════════════════
-function showPanel(id){
-  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('open'));
-  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-  if(id==='main'){
-    document.getElementById('navMain').classList.add('active');
-  } else {
-    document.getElementById(id).classList.add('open');
-    const map={'listPanel':'navList','soundPanel':'navSound','settingsPanel':'navSettings'};
-    if(map[id])document.getElementById(map[id]).classList.add('active');
-  }
-}
-
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;});
-function installApp(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(()=>{deferredPrompt=null;});}}
-
-// ═══════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════
+// ═══ INIT ═══
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 if(Notification.permission==='granted'){
   document.getElementById('toggleNotif').classList.add('on');
@@ -761,8 +930,7 @@ if(Notification.permission==='granted'){
 }
 document.getElementById('listCount').textContent=RADARS.length+' radares';
 renderList(RADARS);
-// Inicia os mapas ao carregar (thumbnail visível imediatamente)
-window.addEventListener('load',()=>{ setTimeout(initMaps, 500); });
+window.addEventListener('load',()=>setTimeout(initMaps,600));
 </script>
 </body>
 </html>
