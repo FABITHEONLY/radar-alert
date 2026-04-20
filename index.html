@@ -63,7 +63,7 @@ body{font-family:var(--sans);color:var(--txt);display:flex;flex-direction:column
 .scroll::-webkit-scrollbar-thumb{background:var(--mu2);border-radius:2px}
 
 /* ══ PAGE 0 — RADAR ══ */
-#p0{padding:12px 16px;gap:12px;overflow:hidden}
+#p0{padding:12px 16px;gap:10px;overflow:hidden;display:flex;flex-direction:column}
 #p0.active{display:flex;flex-direction:column}
 
 /* Big radar display */
@@ -72,7 +72,7 @@ body{font-family:var(--sans);color:var(--txt);display:flex;flex-direction:column
   background:var(--sur);border:1px solid var(--b);
   border-radius:var(--rd);
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:24px 20px 20px;
+  padding:20px 20px 16px;
   position:relative;overflow:hidden;
   transition:border-color .4s,background .4s;
 }
@@ -120,13 +120,12 @@ body{font-family:var(--sans);color:var(--txt);display:flex;flex-direction:column
 .nc-badge{padding:2px 7px;border-radius:99px;background:var(--sur3);border:1px solid var(--b2);font-size:10px;font-family:var(--mono)}
 .nc-badge.vm{background:rgba(255,149,0,.12);border-color:rgba(255,149,0,.3);color:var(--amb)}
 
-/* Map card — same size as near-card area */
+/* Map card — fills remaining vertical space */
 .map-card{
-  flex-shrink:0;
+  flex:1;min-height:0;
   background:var(--sur);border:1px solid var(--b);
   border-radius:var(--rb);overflow:hidden;
   position:relative;cursor:pointer;
-  height:130px;
 }
 .map-card:active{opacity:.85}
 #mapThumb{width:100%;height:100%}
@@ -134,13 +133,56 @@ body{font-family:var(--sans);color:var(--txt);display:flex;flex-direction:column
 .map-tap{position:absolute;bottom:8px;right:10px;font-size:9px;font-family:var(--mono);color:rgba(255,255,255,.35);letter-spacing:.06em;pointer-events:none}
 
 /* Map expanded overlay */
-.map-ov{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .32s}
+.map-ov{
+  position:fixed;inset:0;z-index:300;
+  display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;pointer-events:none;
+  transition:opacity .3s ease;
+}
 .map-ov.open{opacity:1;pointer-events:all}
-.map-bd{position:absolute;inset:0;backdrop-filter:blur(22px) saturate(1.2);-webkit-backdrop-filter:blur(22px) saturate(1.2);background:rgba(8,8,8,.6);cursor:pointer}
-.map-sheet{position:relative;z-index:1;width:calc(100% - 32px);max-width:500px;height:58vh;border-radius:24px;overflow:hidden;border:1px solid var(--b2);transform:scale(.9) translateY(20px);transition:transform .36s cubic-bezier(.32,.72,0,1)}
-.map-ov.open .map-sheet{transform:scale(1) translateY(0)}
+.map-bd{
+  position:absolute;inset:0;
+  backdrop-filter:blur(0px) saturate(1);
+  -webkit-backdrop-filter:blur(0px) saturate(1);
+  background:rgba(8,8,8,0);
+  cursor:pointer;
+  transition:backdrop-filter .38s ease, -webkit-backdrop-filter .38s ease, background .38s ease;
+}
+.map-ov.open .map-bd{
+  backdrop-filter:blur(24px) saturate(1.3);
+  -webkit-backdrop-filter:blur(24px) saturate(1.3);
+  background:rgba(8,8,8,.55);
+}
+.map-sheet{
+  position:relative;z-index:1;
+  width:calc(100% - 24px);max-width:520px;
+  height:72vh;
+  border-radius:24px 24px 20px 20px;
+  overflow:hidden;
+  border:1px solid var(--b2);
+  transform:translateY(100%) scale(.96);
+  transition:transform .42s cubic-bezier(.32,.72,0,1);
+  margin-bottom:12px;
+  box-shadow:0 -8px 40px rgba(0,0,0,.6);
+}
+.map-ov.open .map-sheet{transform:translateY(0) scale(1)}
+.map-ov.closing .map-sheet{transform:translateY(100%) scale(.96)}
+.map-ov.closing .map-bd{
+  backdrop-filter:blur(0px) saturate(1);
+  -webkit-backdrop-filter:blur(0px) saturate(1);
+  background:rgba(8,8,8,0);
+}
 #mapExp{width:100%;height:100%}
-.map-x{position:absolute;top:12px;right:12px;z-index:2;width:30px;height:30px;border-radius:50%;background:rgba(8,8,8,.75);border:1px solid var(--b2);color:rgba(255,255,255,.7);font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.map-x{
+  position:absolute;top:12px;right:12px;z-index:2;
+  width:32px;height:32px;border-radius:50%;
+  background:rgba(8,8,8,.8);border:1px solid var(--b2);
+  color:rgba(255,255,255,.75);font-size:14px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  transition:background .15s;
+}
+.map-x:active{background:rgba(40,40,40,.9)}
 
 /* ══ PAGE 1 — LIST ══ */
 #p1{gap:0}
@@ -364,13 +406,6 @@ body{font-family:var(--sans);color:var(--txt);display:flex;flex-direction:column
         <div><div class="srl">Vibração</div><div class="srs">Pulso haptico</div></div>
         <button class="tog on" id="togVibrate" onclick="togSet('vibrate')"></button>
       </div>
-      <div class="srow col">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div><div class="srl">Distância de alerta</div><div class="srs">Início dos bips</div></div>
-          <span style="font-family:var(--mono);font-size:13px;color:var(--mu)" id="adVal">500m</span>
-        </div>
-        <input type="range" min="200" max="2000" value="500" step="100" id="adSlider" oninput="updAD(this.value)" style="accent-color:var(--red);width:100%">
-      </div>
       <button class="act-btn" onclick="runSim()">&#9654; Simular aproximação ao radar</button>
       <div class="srow col">
         <div style="display:flex;justify-content:space-between;align-items:center">
@@ -446,6 +481,7 @@ function goPage(n){
   document.querySelectorAll('.nb').forEach((b,i)=>b.classList.toggle('on',i===n));
   curPage=n;
   if(n===1)renderList(lastDists||RADARS);
+  if(n===0&&mapT)setTimeout(()=>mapT.invalidateSize(),80);
 }
 
 // ═══ STATE ═══
@@ -511,6 +547,12 @@ function initMaps(){
   RADARS.forEach(r=>L.marker([r.lat,r.lng],{icon:rIcon}).addTo(radarLayerE)
     .bindPopup('<b style="color:#111">'+r.limit+' km/h</b><br><small style="color:#666">'+r.name.replace(/&#8212;/g,'—').replace(/&#8594;/g,'→')+'</small>'));
   radarLayerE.addTo(mapE);
+
+  // Fix frozen-strip bug: invalidate both maps after a short delay
+  setTimeout(()=>{
+    mapT.invalidateSize();
+    mapE.invalidateSize();
+  }, 150);
 }
 
 function updMap(lat,lng,head){
@@ -530,14 +572,22 @@ function updMap(lat,lng,head){
 
 function openMap(){
   initMaps();
-  document.getElementById('mapOv').classList.add('open');
+  const ov=document.getElementById('mapOv');
+  ov.classList.remove('closing');
+  ov.classList.add('open');
   setTimeout(()=>{
     mapE.invalidateSize();
     if(uLat){mapE.setView([uLat,uLng],15,{animate:true});}
     else mapE.setView([39.5,-8],6);
-  },360);
+  },420);
 }
-function closeMap(){document.getElementById('mapOv').classList.remove('open');}
+function closeMap(){
+  const ov=document.getElementById('mapOv');
+  ov.classList.add('closing');
+  setTimeout(()=>{
+    ov.classList.remove('open','closing');
+  },400);
+}
 
 // ═══ AUDIO ═══
 function getCtx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
@@ -719,7 +769,6 @@ function togSet(key){
   document.getElementById('tog'+key.charAt(0).toUpperCase()+key.slice(1)).classList.toggle('on',cfg[key]);
 }
 function updVol(v){cfg.volume=v/100;document.getElementById('volV').textContent=v+'%';}
-function updAD(v){cfg.alertDist=parseInt(v);document.getElementById('adVal').textContent=v+'m';}
 function selSound(mode){
   cfg.sound=mode;
   document.querySelectorAll('.sopt').forEach(e=>e.classList.remove('on'));
