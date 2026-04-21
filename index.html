@@ -38,13 +38,14 @@ body{font-family:var(--sans);color:var(--txt);display:flex;flex-direction:column
 .gps-pill.on .gdot{animation:blink 1.4s ease-in-out infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
 
-/* PAGE SYSTEM — flex children of body, stack in place */
+/* PAGE SYSTEM — flex children of body, only one visible at a time */
 .page{
-  display:none;flex-direction:column;
+  display:none !important;
+  flex-direction:column;
   flex:1;min-height:0;
   overflow:hidden;
 }
-.page.active{display:flex}
+.page.active{display:flex !important}
 
 /* BOTTOM NAV */
 .bnav{
@@ -66,7 +67,7 @@ body{font-family:var(--sans);color:var(--txt);display:flex;flex-direction:column
 
 /* ══ PAGE 0 — RADAR ══ */
 #p0{padding:12px 16px;gap:10px;overflow:hidden;flex-direction:column}
-#p0.active{display:flex;flex-direction:column}
+#p0.active{display:flex !important;flex-direction:column}
 
 /* Big radar display */
 .radar-wrap{
@@ -128,15 +129,16 @@ body{font-family:var(--sans);color:var(--txt);display:flex;flex-direction:column
   background:var(--sur);border:1px solid var(--b);
   border-radius:var(--rb);overflow:hidden;
   position:relative;cursor:pointer;
+  isolation:isolate;
 }
 .map-card:active{opacity:.85}
-#mapThumb{width:100%;height:100%}
+#mapThumb{width:100%;height:100%;transition:visibility 0s}
 .map-vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 50%,transparent 20%,rgba(8,8,8,.65) 100%)}
 .map-tap{position:absolute;bottom:8px;right:10px;font-size:9px;font-family:var(--mono);color:rgba(255,255,255,.35);letter-spacing:.06em;pointer-events:none}
 
 /* Map expanded overlay */
 .map-ov{
-  position:fixed;inset:0;z-index:300;
+  position:fixed;inset:0;z-index:9999;
   display:flex;align-items:flex-end;justify-content:center;
   opacity:0;pointer-events:none;
   transition:opacity .3s ease;
@@ -188,7 +190,7 @@ body{font-family:var(--sans);color:var(--txt);display:flex;flex-direction:column
 
 /* ══ PAGE 1 — LIST ══ */
 #p1{gap:0}
-#p1.active{display:flex;flex-direction:column}
+#p1.active{display:flex !important;flex-direction:column}
 .ph{padding:20px 18px 12px;flex-shrink:0;display:flex;align-items:baseline;justify-content:space-between}
 .pt{font-size:22px;font-weight:800}
 .pct{font-size:12px;color:var(--mu);font-family:var(--mono)}
@@ -211,7 +213,7 @@ body{font-family:var(--sans);color:var(--txt);display:flex;flex-direction:column
 
 /* ══ PAGE 2 — SOUND ══ */
 #p2{gap:0}
-#p2.active{display:flex;flex-direction:column}
+#p2.active{display:flex !important;flex-direction:column}
 .snd-content{padding:12px 16px 16px;display:flex;flex-direction:column;gap:12px}
 .sg-t{font-size:9px;color:var(--mu);font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;padding:0 2px;margin-bottom:2px}
 .sgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -230,7 +232,7 @@ body{font-family:var(--sans);color:var(--txt);display:flex;flex-direction:column
 
 /* ══ PAGE 3 — SETTINGS ══ */
 #p3{gap:0}
-#p3.active{display:flex;flex-direction:column}
+#p3.active{display:flex !important;flex-direction:column}
 .set-content{padding:12px 16px 16px;display:flex;flex-direction:column;gap:10px}
 .srow{background:var(--sur);border:1px solid var(--b);border-radius:var(--rb);padding:14px 16px;display:flex;align-items:center;justify-content:space-between}
 .srow.col{flex-direction:column;align-items:stretch;gap:10px}
@@ -561,8 +563,11 @@ function updMap(lat,lng,head){
 function openMap(){
   initMaps();
   const ov=document.getElementById('mapOv');
+  const thumb=document.getElementById('mapThumb');
   ov.classList.remove('closing');
   ov.classList.add('open');
+  // Hide thumbnail so its Leaflet layers don't bleed through the overlay
+  thumb.style.visibility='hidden';
   setTimeout(()=>{
     mapE.invalidateSize();
     if(uLat){mapE.setView([uLat,uLng],15,{animate:true});}
@@ -571,10 +576,14 @@ function openMap(){
 }
 function closeMap(){
   const ov=document.getElementById('mapOv');
+  const thumb=document.getElementById('mapThumb');
   ov.classList.add('closing');
   setTimeout(()=>{
     ov.classList.remove('open','closing');
-  },400);
+    // Restore thumbnail and fix its size
+    thumb.style.visibility='';
+    if(mapT)mapT.invalidateSize();
+  },420);
 }
 
 // ═══ AUDIO ═══
