@@ -26,6 +26,7 @@
   --ra:14px;--rb:18px;--rc:22px;--rd:26px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+/* ─── LAYOUT: body is the shell ─────────────────────────── */
 html,body{height:100%;overflow:hidden;background:var(--bg)}
 body{font-family:var(--sans);color:var(--txt);display:flex;flex-direction:column}
 
@@ -37,20 +38,21 @@ body{font-family:var(--sans);color:var(--txt);display:flex;flex-direction:column
 .gps-pill.on .gdot{animation:blink 1.4s ease-in-out infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
 
-/* PAGE SYSTEM — absolute positioning, no transforms, just display */
+/* PAGE SYSTEM — flex children of body, stack in place */
 .page{
-  position:absolute;inset:0;top:0;
   display:none;flex-direction:column;
-  /* top offset handled by padding-top via JS */
+  flex:1;min-height:0;
+  overflow:hidden;
 }
 .page.active{display:flex}
 
 /* BOTTOM NAV */
 .bnav{
-  position:fixed;bottom:0;left:0;right:0;z-index:50;
+  flex-shrink:0;
   display:flex;border-top:1px solid var(--b);
   background:var(--bg);
   padding:0 4px;padding-bottom:env(safe-area-inset-bottom,6px);
+  z-index:50;
 }
 .nb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:9px 4px;border:none;background:transparent;color:var(--mu);cursor:pointer;border-radius:10px;transition:color .18s}
 .nb.on{color:var(--txt)}
@@ -63,7 +65,7 @@ body{font-family:var(--sans);color:var(--txt);display:flex;flex-direction:column
 .scroll::-webkit-scrollbar-thumb{background:var(--mu2);border-radius:2px}
 
 /* ══ PAGE 0 — RADAR ══ */
-#p0{padding:12px 16px;gap:10px;overflow:hidden;display:flex;flex-direction:column}
+#p0{padding:12px 16px;gap:10px;overflow:hidden;flex-direction:column}
 #p0.active{display:flex;flex-direction:column}
 
 /* Big radar display */
@@ -460,20 +462,6 @@ body{font-family:var(--sans);color:var(--txt);display:flex;flex-direction:column
 
 <script src="radares.js"></script>
 <script>
-// ═══ LAYOUT: measure header+nav and set page top/bottom padding ═══
-function fixLayout(){
-  const hH=document.getElementById('hdr').offsetHeight;
-  const nH=document.querySelector('.bnav').offsetHeight;
-  document.querySelectorAll('.page').forEach(p=>{
-    p.style.top=(hH+2)+'px';
-    p.style.bottom=nH+'px';
-    p.style.left='0';p.style.right='0';
-  });
-}
-window.addEventListener('resize',fixLayout);
-document.addEventListener('DOMContentLoaded',fixLayout);
-setTimeout(fixLayout,100);
-
 // ═══ PAGE NAV ═══
 let curPage=0;
 function goPage(n){
@@ -704,7 +692,7 @@ function renderList(arr){
   const AD=cfg.alertDist;
   document.getElementById('radarList').innerHTML=arr.map(r=>{
     const rel=isRel(r);
-    const d=r.dist!==undefined?(r.dist<1000?Math.round(r.dist)+'m':(r.dist/1000).toFixed(1)+'km'):'—';
+    const d=(r.dist!==undefined&&!isNaN(r.dist))?(r.dist<1000?Math.round(r.dist)+'m':(r.dist/1000).toFixed(1)+'km'):'—';
     let cls='ri';
     if(rel&&r.dist!==undefined){if(r.dist<300)cls+=' alert';else if(r.dist<AD)cls+=' warn';}
     if(!rel&&uHead!==null)cls+=' dim';
@@ -797,7 +785,7 @@ if(Notification.permission==='granted'){
 }
 document.getElementById('listCount').textContent=RADARS.length+' radares';
 renderList(RADARS);
-window.addEventListener('load',()=>{fixLayout();setTimeout(initMaps,400);});
+window.addEventListener('load',()=>{setTimeout(initMaps,400);});
 </script>
 </body>
 </html>
