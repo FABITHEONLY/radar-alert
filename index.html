@@ -775,14 +775,57 @@ function testSound(){getCtx();let r=0;const iv=setInterval(()=>{r=Math.min(1,r+.
 
 // ═══ SIMULATION ═══
 function runSim(){
-  if(simRunning)return;simRunning=true;goPage(0);
-  uHead=0;uLat=41.15;uLng=-8.58;
-  let d=cfg.alertDist+300;
+  if(simRunning)return;
+  simRunning=true;
+  goPage(0);
+
+  // Usa o radar A1 Gaia S→N como alvo da simulação
+  const simRadar=RADARS.find(r=>r.name.includes('A1 \u2014 Gaia (S\u2192N)')) || RADARS[0];
+
+  // Coloca o utilizador 900m a sul do radar, heading norte
+  const dLat=900/6371000*(180/Math.PI);
+  uLat=simRadar.lat-dLat;
+  uLng=simRadar.lng;
+  uHead=simRadar.bearing;
+
+  initMaps();
+
+  let step=0;
+  const totalSteps=95;
   const iv=setInterval(()=>{
-    d-=18;
-    if(d<-400){clearInterval(iv);simRunning=false;stopBips();uHead=null;renderList(RADARS);return;}
-    const fk=RADARS.map((r,i)=>({...r,dist:i===0?Math.max(0,d):5000+i*300}));
+    step++;
+    const dist=Math.max(0,900-(step*10));
+    uLat=simRadar.lat-((dist/6371000)*(180/Math.PI));
+
+    const fk=RADARS.map(r=>({
+      ...r,
+      dist:r===simRadar ? dist : hav(uLat,uLng,r.lat,r.lng)
+    }));
+
     updateUI(fk,90);
+    if(mapInited)updMap(uLat,uLng,uHead);
+
+    if(step>=totalSteps){
+      clearInterval(iv);
+      simRunning=false;
+      stopBips();
+      setTimeout(()=>{
+        uHead=null;uLat=null;uLng=null;
+        document.getElementById('radarWrap').className='radar-wrap';
+        document.getElementById('nearCard').className='near-card';
+        document.getElementById('dval').textContent='\u2014';
+        document.getElementById('du').textContent='aguarda GPS';
+        document.getElementById('ncName').textContent='Nenhum radar neste sentido';
+        document.getElementById('ncDist').textContent='\u2014';
+        document.getElementById('ncRoad').textContent='';
+        document.getElementById('limitVal').textContent='\u2014';
+        document.getElementById('limitU').textContent='';
+        document.getElementById('spd').textContent='0';
+        document.getElementById('dlbl').textContent='\u2014';
+        renderList(RADARS);
+        if(mapT)mapT.setView([39.5,-8],6,{animate:true});
+      },2000);
+    }
   },100);
 }
 
