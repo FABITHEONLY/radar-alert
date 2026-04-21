@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#080808">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BIP">
+<link rel="manifest" href="manifest.json">
+<title>BIP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{
+  --bg:#080808;--sur:#111;--sur2:#1a1a1a;--sur3:#222;
+  --b:rgba(255,255,255,.055);--b2:rgba(255,255,255,.11);--b3:rgba(255,255,255,.18);
+  --txt:#f2f2f2;--mu:#555;--mu2:#333;
+  --red:#ff3b30;--red-d:rgba(255,59,48,.12);--red-m:rgba(255,59,48,.22);
+  --amb:#ff9500;--amb-d:rgba(255,149,0,.11);
+  --grn:#34c759;--grn-d:rgba(52,199,89,.11);
+  --mono:'DM Mono',monospace;--sans:'Syne',sans-serif;
+  --ra:14px;--rb:18px;--rc:22px;--rd:26px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+/* ─── LAYOUT: body is the shell ─────────────────────────── */
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+body{font-family:var(--sans);color:var(--txt);display:flex;flex-direction:column}
+
+/* HEADER */
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 0;flex-shrink:0}
+.gps-pill{display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:99px;border:1px solid var(--b2);background:var(--sur);color:var(--mu);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all .25s;letter-spacing:.04em}
+.gps-pill.on{border-color:var(--grn);color:var(--grn);background:var(--grn-d)}
+.gdot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+.gps-pill.on .gdot{animation:blink 1.4s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* PAGE SYSTEM — flex children of body, stack in place */
+.page{
+  display:none;flex-direction:column;
+  flex:1;min-height:0;
+  overflow:hidden;
+}
+.page.active{display:flex}
+
+/* BOTTOM NAV */
+.bnav{
+  flex-shrink:0;
+  display:flex;border-top:1px solid var(--b);
+  background:var(--bg);
+  padding:0 4px;padding-bottom:env(safe-area-inset-bottom,6px);
+  z-index:50;
+}
+.nb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:9px 4px;border:none;background:transparent;color:var(--mu);cursor:pointer;border-radius:10px;transition:color .18s}
+.nb.on{color:var(--txt)}
+.nb svg{width:20px;height:20px;stroke-width:1.6;fill:none;stroke:currentColor}
+.nb span{font-size:9px;font-family:var(--mono);letter-spacing:.04em}
+
+/* SHARED SCROLL WRAPPER */
+.scroll{flex:1;overflow-y:auto;min-height:0}
+.scroll::-webkit-scrollbar{width:2px}
+.scroll::-webkit-scrollbar-thumb{background:var(--mu2);border-radius:2px}
+
+/* ══ PAGE 0 — RADAR ══ */
+#p0{padding:12px 16px;gap:10px;overflow:hidden;flex-direction:column}
+#p0.active{display:flex;flex-direction:column}
+
+/* Big radar display */
+.radar-wrap{
+  flex-shrink:0;
+  background:var(--sur);border:1px solid var(--b);
+  border-radius:var(--rd);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:20px 20px 16px;
+  position:relative;overflow:hidden;
+  transition:border-color .4s,background .4s;
+}
+.radar-wrap.warn{border-color:rgba(255,149,0,.45);background:var(--amb-d)}
+.radar-wrap.alert{border-color:rgba(255,59,48,.55);background:var(--red-d)}
+.rings{position:relative;width:110px;height:110px}
+.ring{position:absolute;border-radius:50%;border:1px solid var(--b2);top:50%;left:50%;transform:translate(-50%,-50%);transition:border-color .35s}
+.r1{width:110px;height:110px}.r2{width:76px;height:76px}.r3{width:48px;height:48px}
+.radar-wrap.warn .ring{border-color:rgba(255,149,0,.25)}
+.radar-wrap.alert .ring{border-color:rgba(255,59,48,.28)}
+.rdot{position:absolute;width:28px;height:28px;border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--sur2);border:1px solid var(--b2);display:flex;align-items:center;justify-content:center;transition:background .3s,border-color .3s}
+.radar-wrap.warn .rdot{background:var(--amb);border-color:var(--amb)}
+.radar-wrap.alert .rdot{background:var(--red);border-color:var(--red)}
+.pulsering{position:absolute;border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);width:28px;height:28px;border:1.5px solid var(--red);opacity:0;pointer-events:none}
+.radar-wrap.alert .pulsering{animation:pout .85s ease-out infinite}
+@keyframes pout{0%{width:28px;height:28px;opacity:.85}100%{width:116px;height:116px;opacity:0}}
+.dval{margin-top:14px;font-size:44px;font-weight:800;font-family:var(--mono);line-height:1;color:var(--txt);transition:color .3s;letter-spacing:-.02em}
+.radar-wrap.warn .dval{color:var(--amb)}
+.radar-wrap.alert .dval{color:var(--red)}
+.du{font-size:12px;color:var(--mu);font-family:var(--mono);margin-top:4px;letter-spacing:.04em}
+
+/* Middle info row */
+.mid-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;flex-shrink:0}
+.mc{background:var(--sur);border:1px solid var(--b);border-radius:var(--rb);padding:12px 14px}
+.mc-lbl{font-size:9px;color:var(--mu);font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px}
+.mc-val{font-size:22px;font-weight:800;font-family:var(--mono);line-height:1;letter-spacing:-.02em}
+.mc-u{font-size:10px;color:var(--mu);margin-left:1px}
+.dir-arrow{font-size:20px;line-height:1;transition:transform .4s cubic-bezier(.32,.72,0,1);display:inline-block}
+
+/* Nearest card */
+.near-card{
+  flex-shrink:0;
+  background:var(--sur);border:1px solid var(--b);
+  border-radius:var(--rb);padding:14px 16px;
+  transition:border-color .4s,background .4s;
+}
+.near-card.warn{border-color:rgba(255,149,0,.4);background:var(--amb-d)}
+.near-card.alert{border-color:rgba(255,59,48,.4);background:var(--red-d)}
+.nc-lbl{font-size:9px;color:var(--mu);font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px}
+.nc-name{font-size:14px;font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .3s}
+.near-card.alert .nc-name{color:var(--red)}
+.near-card.warn .nc-name{color:var(--amb)}
+.nc-meta{display:flex;align-items:center;gap:8px;margin-top:6px;font-family:var(--mono);font-size:11px;color:var(--mu)}
+.nc-dist{color:var(--txt);font-weight:600}
+.nc-badge{padding:2px 7px;border-radius:99px;background:var(--sur3);border:1px solid var(--b2);font-size:10px;font-family:var(--mono)}
+.nc-badge.vm{background:rgba(255,149,0,.12);border-color:rgba(255,149,0,.3);color:var(--amb)}
+
+/* Map card — fills remaining vertical space */
+.map-card{
+  flex:1;min-height:0;
+  background:var(--sur);border:1px solid var(--b);
+  border-radius:var(--rb);overflow:hidden;
+  position:relative;cursor:pointer;
+}
+.map-card:active{opacity:.85}
+#mapThumb{width:100%;height:100%}
+.map-vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 50%,transparent 20%,rgba(8,8,8,.65) 100%)}
+.map-tap{position:absolute;bottom:8px;right:10px;font-size:9px;font-family:var(--mono);color:rgba(255,255,255,.35);letter-spacing:.06em;pointer-events:none}
+
+/* Map expanded overlay */
+.map-ov{
+  position:fixed;inset:0;z-index:300;
+  display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;pointer-events:none;
+  transition:opacity .3s ease;
+}
+.map-ov.open{opacity:1;pointer-events:all}
+.map-bd{
+  position:absolute;inset:0;
+  backdrop-filter:blur(0px) saturate(1);
+  -webkit-backdrop-filter:blur(0px) saturate(1);
+  background:rgba(8,8,8,0);
+  cursor:pointer;
+  transition:backdrop-filter .38s ease, -webkit-backdrop-filter .38s ease, background .38s ease;
+}
+.map-ov.open .map-bd{
+  backdrop-filter:blur(24px) saturate(1.3);
+  -webkit-backdrop-filter:blur(24px) saturate(1.3);
+  background:rgba(8,8,8,.55);
+}
+.map-sheet{
+  position:relative;z-index:1;
+  width:calc(100% - 24px);max-width:520px;
+  height:72vh;
+  border-radius:24px 24px 20px 20px;
+  overflow:hidden;
+  border:1px solid var(--b2);
+  transform:translateY(100%) scale(.96);
+  transition:transform .42s cubic-bezier(.32,.72,0,1);
+  margin-bottom:12px;
+  box-shadow:0 -8px 40px rgba(0,0,0,.6);
+}
+.map-ov.open .map-sheet{transform:translateY(0) scale(1)}
+.map-ov.closing .map-sheet{transform:translateY(100%) scale(.96)}
+.map-ov.closing .map-bd{
+  backdrop-filter:blur(0px) saturate(1);
+  -webkit-backdrop-filter:blur(0px) saturate(1);
+  background:rgba(8,8,8,0);
+}
+#mapExp{width:100%;height:100%}
+.map-x{
+  position:absolute;top:12px;right:12px;z-index:2;
+  width:32px;height:32px;border-radius:50%;
+  background:rgba(8,8,8,.8);border:1px solid var(--b2);
+  color:rgba(255,255,255,.75);font-size:14px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  transition:background .15s;
+}
+.map-x:active{background:rgba(40,40,40,.9)}
+
+/* ══ PAGE 1 — LIST ══ */
+#p1{gap:0}
+#p1.active{display:flex;flex-direction:column}
+.ph{padding:20px 18px 12px;flex-shrink:0;display:flex;align-items:baseline;justify-content:space-between}
+.pt{font-size:22px;font-weight:800}
+.pct{font-size:12px;color:var(--mu);font-family:var(--mono)}
+.rlist{padding:0 16px 16px;display:flex;flex-direction:column;gap:6px}
+.ri{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:var(--rb);border:1px solid var(--b);background:var(--sur);transition:border-color .3s,background .3s,opacity .3s}
+.ri.warn{border-color:rgba(255,149,0,.4);background:var(--amb-d)}
+.ri.alert{border-color:rgba(255,59,48,.4);background:var(--red-d)}
+.ri.dim{opacity:.35}
+.rdot2{width:7px;height:7px;border-radius:50%;background:var(--mu2);flex-shrink:0;transition:background .3s}
+.ri.warn .rdot2{background:var(--amb)}
+.ri.alert .rdot2{background:var(--red);box-shadow:0 0 6px var(--red)}
+.rinfo{flex:1;min-width:0}
+.rn{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rr{font-size:10px;color:var(--mu);font-family:var(--mono);margin-top:2px}
+.rright{text-align:right;flex-shrink:0}
+.rdi{font-size:12px;font-weight:600;font-family:var(--mono)}
+.ri.warn .rdi{color:var(--amb)}
+.ri.alert .rdi{color:var(--red)}
+.rlim{font-size:10px;color:var(--mu);font-family:var(--mono);margin-top:2px}
+
+/* ══ PAGE 2 — SOUND ══ */
+#p2{gap:0}
+#p2.active{display:flex;flex-direction:column}
+.snd-content{padding:12px 16px 16px;display:flex;flex-direction:column;gap:12px}
+.sg-t{font-size:9px;color:var(--mu);font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;padding:0 2px;margin-bottom:2px}
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sopt{display:flex;flex-direction:column;align-items:center;gap:7px;padding:16px 12px;border-radius:var(--rb);border:1px solid var(--b);background:var(--sur);cursor:pointer;transition:all .2s}
+.sopt.on{border-color:var(--red);background:var(--red-d)}
+.sopt svg{width:22px;height:22px;stroke:var(--mu);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.sopt.on svg{stroke:var(--red)}
+.sn{font-size:12px;font-weight:700}
+.ss{font-size:10px;color:var(--mu);font-family:var(--mono);text-align:center;line-height:1.4}
+.vol-row{background:var(--sur);border:1px solid var(--b);border-radius:var(--rb);padding:14px 16px}
+.vol-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.vol-lbl{font-size:13px;font-weight:700}
+.vol-v{font-size:12px;font-family:var(--mono);color:var(--mu)}
+.act-btn{width:100%;padding:14px;border-radius:var(--rb);border:1px solid var(--b2);background:var(--sur);color:var(--txt);font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer;transition:background .15s;letter-spacing:.01em}
+.act-btn:active{background:var(--sur2)}
+
+/* ══ PAGE 3 — SETTINGS ══ */
+#p3{gap:0}
+#p3.active{display:flex;flex-direction:column}
+.set-content{padding:12px 16px 16px;display:flex;flex-direction:column;gap:10px}
+.srow{background:var(--sur);border:1px solid var(--b);border-radius:var(--rb);padding:14px 16px;display:flex;align-items:center;justify-content:space-between}
+.srow.col{flex-direction:column;align-items:stretch;gap:10px}
+.srl{font-size:14px;font-weight:700}
+.srs{font-size:11px;color:var(--mu);font-family:var(--mono);margin-top:2px}
+.tog{width:44px;height:26px;border-radius:13px;background:var(--mu2);border:none;cursor:pointer;position:relative;transition:background .22s;flex-shrink:0}
+.tog.on{background:var(--grn)}
+.tog::after{content:'';position:absolute;width:20px;height:20px;border-radius:50%;background:white;top:3px;left:3px;transition:transform .22s}
+.tog.on::after{transform:translateX(18px)}
+.ptag{font-size:11px;font-family:var(--mono);color:var(--mu);padding:6px 10px;border-radius:8px;background:var(--sur2)}
+.abt{background:var(--sur);border:1px solid var(--b);border-radius:var(--rb);padding:14px 16px}
+.abt-t{font-size:14px;font-weight:700;margin-bottom:6px}
+.abt-s{font-size:11px;color:var(--mu);font-family:var(--mono);line-height:1.8}
+
+/* Leaflet */
+.leaflet-container{background:#0b0d12!important}
+.leaflet-tile{filter:brightness(.82) saturate(.75)}
+.leaflet-control-zoom a{background:var(--sur2)!important;color:var(--txt)!important;border-color:var(--b2)!important}
+.leaflet-popup-content-wrapper{background:var(--sur);color:var(--txt);border:1px solid var(--b2)}
+.leaflet-popup-tip{background:var(--sur)}
+
+/* User location arrow marker */
+.user-arrow-icon{
+  width:32px;height:32px;display:flex;align-items:center;justify-content:center;
+  /* rotated via JS */
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER — shared, always visible -->
+<div class="hdr" id="hdr">
+  <div>
+    <svg width="62" height="26" viewBox="0 0 62 26" fill="none">
+      <text x="0" y="22" font-family="'Arial Black','Helvetica Neue',sans-serif" font-weight="900" font-size="24" letter-spacing="-1" fill="white">BIP</text>
+      <line x1="40" y1="3" x2="50" y2="24" stroke="#ff3b30" stroke-width="2.8" stroke-linecap="round" opacity=".8"/>
+      <rect x="0" y="24.5" width="42" height="1.8" rx="1" fill="#ff3b30"/>
+    </svg>
+  </div>
+  <button class="gps-pill" id="gpsBtn" onclick="toggleGPS()">
+    <span class="gdot"></span>
+    <span id="gpsLbl">GPS off</span>
+  </button>
+</div>
+
+<!-- PAGE 0: RADAR -->
+<div class="page active" id="p0">
+
+  <!-- Radar display — big, centered -->
+  <div class="radar-wrap" id="radarWrap">
+    <div class="rings">
+      <div class="ring r1"></div>
+      <div class="ring r2"></div>
+      <div class="ring r3"></div>
+      <div class="pulsering"></div>
+      <div class="rdot">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <circle cx="6" cy="6" r="2" fill="white"/>
+          <path d="M6 1v1.3M6 9.7V11M1 6h1.3M9.7 6H11" stroke="white" stroke-width="1.1" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+    <div class="dval" id="dval">—</div>
+    <div class="du" id="du">aguarda GPS</div>
+  </div>
+
+  <!-- Middle row: speed, nearest, direction -->
+  <div class="mid-row">
+    <div class="mc">
+      <div class="mc-lbl">Velocidade</div>
+      <div><span class="mc-val" id="spd">0</span><span class="mc-u">km/h</span></div>
+    </div>
+    <div class="mc" style="grid-column:span 1">
+      <div class="mc-lbl">Sentido</div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span class="dir-arrow" id="darrow">↑</span>
+        <span style="font-size:11px;color:var(--mu);font-family:var(--mono)" id="dlbl">—</span>
+      </div>
+    </div>
+    <div class="mc">
+      <div class="mc-lbl">Limite</div>
+      <div><span class="mc-val" id="limitVal">—</span><span class="mc-u" id="limitU"></span></div>
+    </div>
+  </div>
+
+  <!-- Nearest radar card -->
+  <div class="near-card" id="nearCard">
+    <div class="nc-lbl">Radar mais próximo</div>
+    <div class="nc-name" id="ncName">Nenhum radar neste sentido</div>
+    <div class="nc-meta">
+      <span class="nc-dist" id="ncDist">—</span>
+      <span class="nc-badge" id="ncRoad" style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></span>
+      <span class="nc-badge vm" id="ncVM" style="display:none">VM</span>
+    </div>
+  </div>
+
+  <!-- Map card -->
+  <div class="map-card" id="mapCard" onclick="openMap()">
+    <div id="mapThumb"></div>
+    <div class="map-vignette"></div>
+    <div class="map-tap">EXPANDIR</div>
+  </div>
+
+</div>
+
+<!-- PAGE 1: LIST -->
+<div class="page" id="p1">
+  <div class="ph">
+    <div class="pt">Radares</div>
+    <div class="pct" id="listCount"></div>
+  </div>
+  <div class="scroll">
+    <div class="rlist" id="radarList"></div>
+  </div>
+</div>
+
+<!-- PAGE 2: SOUND -->
+<div class="page" id="p2">
+  <div class="ph"><div class="pt">Alerta sonoro</div></div>
+  <div class="scroll">
+    <div class="snd-content">
+      <div>
+        <div class="sg-t">Tipo de som</div>
+        <div class="sgrid" style="margin-top:8px">
+          <div class="sopt on" onclick="selSound('cronometro')" id="snd-cronometro">
+            <svg viewBox="0 0 22 22"><circle cx="11" cy="12" r="8"/><path d="M11 8v4l2.5 2.5"/><path d="M8.5 1.5h5M11 1.5V4"/></svg>
+            <div class="sn">Cronómetro</div>
+            <div class="ss">Bip-bip duplo acelerado</div>
+          </div>
+          <div class="sopt" onclick="selSound('sonar')" id="snd-sonar">
+            <svg viewBox="0 0 22 22"><circle cx="11" cy="11" r="3"/><circle cx="11" cy="11" r="6.5" opacity=".5"/><circle cx="11" cy="11" r="10" opacity=".25"/></svg>
+            <div class="sn">Sonar</div>
+            <div class="ss">Ping descendente</div>
+          </div>
+          <div class="sopt" onclick="selSound('alerta')" id="snd-alerta">
+            <svg viewBox="0 0 22 22"><path d="M11 2l9 17H2L11 2z"/><path d="M11 9v4M11 15.5v1"/></svg>
+            <div class="sn">Alerta</div>
+            <div class="ss">Tom urgente crescente</div>
+          </div>
+          <div class="sopt" onclick="selSound('discreto')" id="snd-discreto">
+            <svg viewBox="0 0 22 22"><path d="M4 8v6l3 3h3V5H7L4 8z" stroke-linejoin="round"/><path d="M15 7a5 5 0 010 8"/></svg>
+            <div class="sn">Discreto</div>
+            <div class="ss">Clique suave</div>
+          </div>
+          <div class="sopt" onclick="selSound('digital')" id="snd-digital">
+            <svg viewBox="0 0 22 22"><rect x="3" y="6" width="16" height="10" rx="2"/><path d="M7 11h1.5M10 9v4M12 9v4M13.5 11H15"/></svg>
+            <div class="sn">Digital</div>
+            <div class="ss">Bip eletrónico retro</div>
+          </div>
+          <div class="sopt" onclick="selSound('silencio')" id="snd-silencio">
+            <svg viewBox="0 0 22 22"><path d="M4 8v6l3 3h3V5H7L4 8z" stroke-linejoin="round"/><line x1="14" y1="8" x2="20" y2="14"/><line x1="20" y1="8" x2="14" y2="14"/></svg>
+            <div class="sn">Silêncio</div>
+            <div class="ss">Só vibração</div>
+          </div>
+        </div>
+      </div>
+      <div class="vol-row">
+        <div class="vol-top">
+          <span class="vol-lbl">Volume</span>
+          <span class="vol-v" id="volV">80%</span>
+        </div>
+        <input type="range" min="0" max="100" value="80" step="5" id="volSlider" oninput="updVol(this.value)" style="accent-color:var(--red);width:100%">
+      </div>
+      <button class="act-btn" onclick="testSound()">&#9654; Testar som</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 3: SETTINGS -->
+<div class="page" id="p3">
+  <div class="ph"><div class="pt">Definições</div></div>
+  <div class="scroll">
+    <div class="set-content">
+      <div class="srow">
+        <div><div class="srl">Vibração</div><div class="srs">Pulso haptico</div></div>
+        <button class="tog on" id="togVibrate" onclick="togSet('vibrate')"></button>
+      </div>
+      <button class="act-btn" onclick="runSim()">&#9654; Simular aproximação ao radar</button>
+      <div class="srow col">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><div class="srl">GPS</div><div class="srs">Localização em tempo real</div></div>
+          <button class="tog" id="togGps" onclick="toggleGPS()"></button>
+        </div>
+        <div class="ptag" id="gpsStatus">Não ativo</div>
+      </div>
+      <div class="srow col">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><div class="srl">Notificações</div><div class="srs">Alertas com ecrã bloqueado</div></div>
+          <button class="tog" id="togNotif" onclick="reqNotif()"></button>
+        </div>
+        <div class="ptag" id="notifStatus">Não solicitada</div>
+      </div>
+      <div class="abt">
+        <div class="abt-t">BIP v2.0</div>
+        <div class="abt-s">123 radares SINCRO — Portugal<br>Fonte: ANSR / radaresavista.pt (ago. 2025)<br>Alerta inteligente por sentido de trânsito.<br>Use sempre com responsabilidade.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAP OVERLAY — fixed, outside all pages, always on top -->
+<div class="map-ov" id="mapOv">
+  <div class="map-bd" onclick="closeMap()"></div>
+  <div class="map-sheet">
+    <div id="mapExp"></div>
+    <div class="map-x" onclick="closeMap()">&#x2715;</div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV — fixed at bottom -->
+<div class="bnav">
+  <button class="nb on" id="nb0" onclick="goPage(0)">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="11" opacity=".35"/></svg>
+    <span>Radar</span>
+  </button>
+  <button class="nb" id="nb1" onclick="goPage(1)">
+    <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+    <span>Lista</span>
+  </button>
+  <button class="nb" id="nb2" onclick="goPage(2)">
+    <svg viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>
+    <span>Som</span>
+  </button>
+  <button class="nb" id="nb3" onclick="goPage(3)">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    <span>Definições</span>
+  </button>
+</div>
+
+<script src="radares.js"></script>
+<script>
+// ═══ PAGE NAV ═══
+let curPage=0;
+function goPage(n){
+  document.querySelectorAll('.page').forEach((p,i)=>p.classList.toggle('active',i===n));
+  document.querySelectorAll('.nb').forEach((b,i)=>b.classList.toggle('on',i===n));
+  curPage=n;
+  if(n===1)renderList(lastDists||RADARS);
+  if(n===0&&mapT)setTimeout(()=>mapT.invalidateSize(),80);
+}
+
+// ═══ STATE ═══
+let gpsActive=false,watchId=null,audioCtx=null;
+let cfg={vibrate:true,volume:.8,alertDist:500,sound:'cronometro'};
+let bipIv=null,bipRate=0,lastNearDist=Infinity;
+let simRunning=false;
+let uLat=null,uLng=null,uHead=null;
+let mapT=null,mapE=null,mrkT=null,mrkE=null,radarLayerT=null,radarLayerE=null;
+let mapInited=false;
+let lastDists=null;
+
+// ═══ DIRECTION ═══
+function bearing(la1,ln1,la2,ln2){
+  const r=d=>d*Math.PI/180,dL=r(ln2-ln1);
+  const y=Math.sin(dL)*Math.cos(r(la2));
+  const x=Math.cos(r(la1))*Math.sin(r(la2))-Math.sin(r(la1))*Math.cos(r(la2))*Math.cos(dL);
+  return(Math.atan2(y,x)*180/Math.PI+360)%360;
+}
+function angDiff(a,b){let d=Math.abs(a-b)%360;return d>180?360-d:d;}
+function isRel(r){if(r.ambos)return true;if(uHead===null)return true;return angDiff(uHead,r.bearing)<=70;}
+
+// ═══ MAP ═══
+// Custom SVG icons — fixed pixel size regardless of zoom
+function makeRadarIcon(){
+  return L.divIcon({
+    className:'',
+    html:'<svg width="14" height="14" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg"><circle cx="7" cy="7" r="5" fill="#ff3b30" opacity=".9"/><circle cx="7" cy="7" r="2.5" fill="white" opacity=".7"/></svg>',
+    iconSize:[14,14],iconAnchor:[7,7]
+  });
+}
+// User location — arrow pointing in heading direction
+function makeUserIcon(heading){
+  const deg=heading||0;
+  return L.divIcon({
+    className:'',
+    html:'<svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" style="transform:rotate('+deg+'deg);transform-origin:center">'
+      +'<circle cx="18" cy="18" r="16" fill="rgba(52,199,89,.18)" stroke="rgba(52,199,89,.5)" stroke-width="1.5"/>'
+      +'<circle cx="18" cy="18" r="7" fill="#34c759"/>'
+      +'<polygon points="18,4 22,16 18,13 14,16" fill="white" opacity=".9"/>'
+      +'</svg>',
+    iconSize:[36,36],iconAnchor:[18,18]
+  });
+}
+
+function initMaps(){
+  if(mapInited)return;
+  mapInited=true;
+  const tile='https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+  const rIcon=makeRadarIcon();
+
+  // THUMBNAIL
+  mapT=L.map('mapThumb',{zoomControl:false,attributionControl:false,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,touchZoom:false,keyboard:false}).setView([39.5,-8],6);
+  L.tileLayer(tile,{maxZoom:18}).addTo(mapT);
+  radarLayerT=L.layerGroup();
+  RADARS.forEach(r=>L.marker([r.lat,r.lng],{icon:rIcon}).addTo(radarLayerT));
+  radarLayerT.addTo(mapT);
+
+  // EXPANDED
+  mapE=L.map('mapExp',{zoomControl:true,attributionControl:false}).setView([39.5,-8],6);
+  L.tileLayer(tile,{maxZoom:18}).addTo(mapE);
+  radarLayerE=L.layerGroup();
+  RADARS.forEach(r=>L.marker([r.lat,r.lng],{icon:rIcon}).addTo(radarLayerE)
+    .bindPopup('<b style="color:#111">'+r.limit+' km/h</b><br><small style="color:#666">'+r.name.replace(/&#8212;/g,'—').replace(/&#8594;/g,'→')+'</small>'));
+  radarLayerE.addTo(mapE);
+
+  // Fix frozen-strip bug: invalidate both maps after a short delay
+  setTimeout(()=>{
+    mapT.invalidateSize();
+    mapE.invalidateSize();
+  }, 150);
+}
+
+function updMap(lat,lng,head){
+  if(!mapInited)return;
+  const pos=[lat,lng];
+  const uIcon=makeUserIcon(head);
+  if(!mrkT){
+    mrkT=L.marker(pos,{icon:uIcon,zIndexOffset:1000}).addTo(mapT);
+    mrkE=L.marker(pos,{icon:uIcon,zIndexOffset:1000}).addTo(mapE);
+  } else {
+    mrkT.setLatLng(pos).setIcon(uIcon);
+    mrkE.setLatLng(pos).setIcon(uIcon);
+  }
+  // Auto-center thumbnail
+  mapT.panTo(pos,{animate:false});
+}
+
+function openMap(){
+  initMaps();
+  const ov=document.getElementById('mapOv');
+  ov.classList.remove('closing');
+  ov.classList.add('open');
+  setTimeout(()=>{
+    mapE.invalidateSize();
+    if(uLat){mapE.setView([uLat,uLng],15,{animate:true});}
+    else mapE.setView([39.5,-8],6);
+  },420);
+}
+function closeMap(){
+  const ov=document.getElementById('mapOv');
+  ov.classList.add('closing');
+  setTimeout(()=>{
+    ov.classList.remove('open','closing');
+  },400);
+}
+
+// ═══ AUDIO ═══
+function getCtx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
+function tone(f,d,type,vol){
+  const c=getCtx();if(c.state==='suspended')c.resume();
+  const o=c.createOscillator(),g=c.createGain();
+  o.connect(g);g.connect(c.destination);
+  o.frequency.value=f;o.type=type||'sine';
+  g.gain.setValueAtTime(0,c.currentTime);
+  g.gain.linearRampToValueAtTime((vol||.5)*cfg.volume,c.currentTime+.005);
+  g.gain.exponentialRampToValueAtTime(.001,c.currentTime+d);
+  o.start(c.currentTime);o.stop(c.currentTime+d+.02);
+}
+function playS(mode,ratio){
+  if(mode==='silencio')return;
+  if(mode==='cronometro'){tone(880,.055,'sine',.5);setTimeout(()=>tone(880,.055,'sine',.5),85);}
+  else if(mode==='sonar'){
+    const c=getCtx();if(c.state==='suspended')c.resume();
+    const o=c.createOscillator(),g=c.createGain();
+    o.connect(g);g.connect(c.destination);o.type='sine';
+    o.frequency.setValueAtTime(1100,c.currentTime);o.frequency.exponentialRampToValueAtTime(280,c.currentTime+.35);
+    g.gain.setValueAtTime(cfg.volume*.55,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.35);
+    o.start(c.currentTime);o.stop(c.currentTime+.4);
+  } else if(mode==='alerta'){
+    const c=getCtx();if(c.state==='suspended')c.resume();
+    const o=c.createOscillator(),g=c.createGain();
+    o.connect(g);g.connect(c.destination);o.type='sawtooth';
+    o.frequency.setValueAtTime(380+ratio*280,c.currentTime);o.frequency.linearRampToValueAtTime(580+ratio*380,c.currentTime+.13);
+    g.gain.setValueAtTime(cfg.volume*.28,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.18);
+    o.start(c.currentTime);o.stop(c.currentTime+.2);
+  } else if(mode==='discreto'){tone(1100,.03,'sine',.22);setTimeout(()=>tone(850,.03,'sine',.18),55);}
+  else if(mode==='digital'){tone(440+ratio*500,.07,'square',.18);}
+}
+function doAlert(ratio){
+  playS(cfg.sound,ratio);
+  if(cfg.vibrate&&navigator.vibrate)navigator.vibrate(ratio>.8?[60,30,60]:[30,20,20]);
+}
+function setBip(dist){
+  const AD=cfg.alertDist,MIN=50;
+  if(dist>=AD){stopBips();return;}
+  const ratio=Math.max(0,Math.min(1,(AD-dist)/(AD-MIN)));
+  const iv=400+Math.pow(1-ratio,2)*2100;
+  if(Math.abs(iv-bipRate)>50||bipRate===0){
+    bipRate=iv;stopBips();doAlert(ratio);
+    bipIv=setInterval(()=>doAlert(ratio),iv);
+  }
+}
+function stopBips(){if(bipIv){clearInterval(bipIv);bipIv=null;}bipRate=0;}
+
+// ═══ DISTANCE ═══
+function hav(la1,ln1,la2,ln2){
+  const R=6371000,dLa=(la2-la1)*Math.PI/180,dLn=(ln2-ln1)*Math.PI/180;
+  const a=Math.sin(dLa/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dLn/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function headLabel(h){if(h===null)return'—';const d=['N','NE','E','SE','S','SO','O','NO','N'];return d[Math.round(h/45)];}
+
+// ═══ UI ═══
+function updateUI(dists,speed){
+  lastDists=dists;
+  const rel=dists.filter(r=>isRel(r)).sort((a,b)=>a.dist-b.dist);
+  const all=dists.slice().sort((a,b)=>a.dist-b.dist);
+  const near=rel[0];
+  const AD=cfg.alertDist;
+
+  document.getElementById('spd').textContent=Math.round(speed);
+  if(uHead!==null){
+    document.getElementById('darrow').style.transform='rotate('+uHead+'deg)';
+    document.getElementById('dlbl').textContent=headLabel(uHead);
+  }
+
+  const rw=document.getElementById('radarWrap');
+  const nc=document.getElementById('nearCard');
+
+  if(near){
+    const d=near.dist;
+    document.getElementById('dval').textContent=d<1000?Math.round(d):(d/1000).toFixed(1);
+    document.getElementById('du').textContent=d<1000?'metros':'km';
+    const nm=near.name.replace(/&#8212;/g,'—').replace(/&#8594;/g,'→');
+    document.getElementById('ncName').textContent=nm;
+    document.getElementById('ncDist').textContent=d<1000?Math.round(d)+'m':(d/1000).toFixed(1)+'km';
+    document.getElementById('ncRoad').textContent=near.road;
+    document.getElementById('limitVal').textContent=near.limit;
+    document.getElementById('limitU').textContent='km/h';
+    const vmEl=document.getElementById('ncVM');
+    if(near.type==='VM')vmEl.style.display='';else vmEl.style.display='none';
+
+    if(d<300){rw.className='radar-wrap alert';nc.className='near-card alert';setBip(d);}
+    else if(d<AD){rw.className='radar-wrap warn';nc.className='near-card warn';setBip(d);}
+    else{rw.className='radar-wrap';nc.className='near-card';stopBips();}
+
+    if(d<500&&lastNearDist>=500)sendNotif(nm,Math.round(d));
+    lastNearDist=d;
+    if('mediaSession' in navigator)navigator.mediaSession.metadata=new MediaMetadata({
+      title:(d<1000?Math.round(d)+'m':(d/1000).toFixed(1)+'km'),
+      artist:nm.substring(0,50),album:'BIP'
+    });
+  } else {
+    rw.className='radar-wrap';nc.className='near-card';
+    document.getElementById('dval').textContent='—';
+    document.getElementById('du').textContent='aguarda GPS';
+    document.getElementById('ncName').textContent='Nenhum radar neste sentido';
+    document.getElementById('ncDist').textContent='—';
+    document.getElementById('ncRoad').textContent='';
+    document.getElementById('limitVal').textContent='—';
+    document.getElementById('limitU').textContent='';
+    document.getElementById('ncVM').style.display='none';
+    stopBips();lastNearDist=Infinity;
+  }
+  if(curPage===1)renderList(all);
+}
+
+function renderList(arr){
+  const AD=cfg.alertDist;
+  document.getElementById('radarList').innerHTML=arr.map(r=>{
+    const rel=isRel(r);
+    const d=(r.dist!==undefined&&!isNaN(r.dist))?(r.dist<1000?Math.round(r.dist)+'m':(r.dist/1000).toFixed(1)+'km'):'—';
+    let cls='ri';
+    if(rel&&r.dist!==undefined){if(r.dist<300)cls+=' alert';else if(r.dist<AD)cls+=' warn';}
+    if(!rel&&uHead!==null)cls+=' dim';
+    const nm=r.name.replace(/&#8212;/g,'—').replace(/&#8594;/g,'→');
+    const vm=r.type==='VM'?'<span style="font-size:9px;padding:1px 5px;border-radius:99px;background:rgba(255,149,0,.15);color:var(--amb);margin-left:4px;font-family:var(--mono)">VM</span>':'';
+    return'<div class="'+cls+'"><div class="rdot2"></div><div class="rinfo"><div class="rn">'+nm+vm+'</div><div class="rr">'+r.road+'</div></div><div class="rright"><div class="rdi">'+d+'</div><div class="rlim">'+r.limit+' km/h</div></div></div>';
+  }).join('');
+}
+
+// ═══ GPS ═══
+function toggleGPS(){
+  if(!gpsActive){
+    if(!navigator.geolocation){alert('GPS não disponível.');return;}
+    initMaps();
+    watchId=navigator.geolocation.watchPosition(pos=>{
+      uLat=pos.coords.latitude;uLng=pos.coords.longitude;
+      const spd=(pos.coords.speed||0)*3.6;
+      if(pos.coords.heading!==null&&pos.coords.heading!==undefined&&spd>3)uHead=pos.coords.heading;
+      const dists=RADARS.map(r=>({...r,dist:hav(uLat,uLng,r.lat,r.lng)}));
+      updateUI(dists,spd);
+      updMap(uLat,uLng,uHead);
+      // Auto-zoom thumbnail to user on first fix
+      if(mapT)mapT.setView([uLat,uLng],14,{animate:true});
+      document.getElementById('gpsStatus').textContent='Ativo · '+uLat.toFixed(5)+', '+uLng.toFixed(5);
+      document.getElementById('togGps').classList.add('on');
+    },err=>{
+      document.getElementById('gpsStatus').textContent='Erro: '+err.message;
+    },{enableHighAccuracy:true,maximumAge:1500,timeout:10000});
+    gpsActive=true;
+    document.getElementById('gpsBtn').classList.add('on');
+    document.getElementById('gpsLbl').textContent='GPS on';
+    document.getElementById('togGps').classList.add('on');
+    if('wakeLock' in navigator)navigator.wakeLock.request('screen').catch(()=>{});
+  } else {
+    if(watchId)navigator.geolocation.clearWatch(watchId);
+    gpsActive=false;stopBips();uHead=null;
+    document.getElementById('gpsBtn').classList.remove('on');
+    document.getElementById('gpsLbl').textContent='GPS off';
+    document.getElementById('gpsStatus').textContent='Desativado';
+    document.getElementById('togGps').classList.remove('on');
+    if(mapT)mapT.setView([39.5,-8],6,{animate:true});
+    renderList(RADARS);
+  }
+}
+
+// ═══ NOTIFICATIONS ═══
+function reqNotif(){
+  if(!('Notification' in window)){document.getElementById('notifStatus').textContent='Não suportado';return;}
+  Notification.requestPermission().then(p=>{
+    document.getElementById('notifStatus').textContent=p==='granted'?'Autorizado':'Negado';
+    if(p==='granted')document.getElementById('togNotif').classList.add('on');
+  });
+}
+function sendNotif(name,dist){
+  if(Notification.permission!=='granted')return;
+  new Notification('Radar próximo!',{body:name+'  —  '+dist+'m',tag:'radar',renotify:true});
+}
+
+// ═══ SETTINGS ═══
+function togSet(key){
+  cfg[key]=!cfg[key];
+  document.getElementById('tog'+key.charAt(0).toUpperCase()+key.slice(1)).classList.toggle('on',cfg[key]);
+}
+function updVol(v){cfg.volume=v/100;document.getElementById('volV').textContent=v+'%';}
+function selSound(mode){
+  cfg.sound=mode;
+  document.querySelectorAll('.sopt').forEach(e=>e.classList.remove('on'));
+  document.getElementById('snd-'+mode).classList.add('on');
+}
+function testSound(){getCtx();let r=0;const iv=setInterval(()=>{r=Math.min(1,r+.12);doAlert(r);if(r>=1)clearInterval(iv);},280);}
+
+// ═══ SIMULATION ═══
+function runSim(){
+  if(simRunning)return;simRunning=true;goPage(0);
+  uHead=0;uLat=41.15;uLng=-8.58;
+  let d=cfg.alertDist+300;
+  const iv=setInterval(()=>{
+    d-=18;
+    if(d<-400){clearInterval(iv);simRunning=false;stopBips();uHead=null;renderList(RADARS);return;}
+    const fk=RADARS.map((r,i)=>({...r,dist:i===0?Math.max(0,d):5000+i*300}));
+    updateUI(fk,90);
+  },100);
+}
+
+// ═══ INIT ═══
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+if(Notification.permission==='granted'){
+  document.getElementById('togNotif').classList.add('on');
+  document.getElementById('notifStatus').textContent='Autorizado';
+}
+document.getElementById('listCount').textContent=RADARS.length+' radares';
+renderList(RADARS);
+window.addEventListener('load',()=>{setTimeout(initMaps,400);});
+</script>
+</body>
+</html>
